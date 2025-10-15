@@ -2,29 +2,27 @@ import os
 from PIL import Image
 import numpy as np
 import tifffile as tiff
-
 from scipy.ndimage import gaussian_filter
 
-# PROPOSED FLOW
-# Gaussian background subtraction -> Hist matching -> Tile Images -> Local Denoising -> normalize px between 0 and 1 values -> RETURN IMAGE STACK
+# TODO: DENOISE IMAGE FUNCTION
+# TODO: COMBINE PIPELINE INTO A FUNCTION
 
-def NormalizeImageChannels(img):
+def NormalizeImageChannels(img_list):
     """Scales pixel values in a 2D img between 0 and 1
-
-    Args:
-        img (2d numpy array): numpy array representing a single channel
-
-    Returns:
-        img_norm: the scaled 2D image with intensity values between 0 and 1
     """
+    norm_img_list = []
     
-    # scale all pixel values to floats between 0 and 1
-    img_min = img.min()
-    img_max = img.max()
+    for img in img_list:
+        
+        # scale all pixel values to floats between 0 and 1
+        img_min = img.min()
+        img_max = img.max()
+        
+        img_norm = (img - img_min) / (img_max - img_min + 1e-8)
+        
+        norm_img_list.append(img_norm)
     
-    img_norm = (img - img_min) / (img_max - img_min + 1e-8)
-    
-    return img_norm
+    return norm_img_list
 
 
 def SelectActiveChannel(img):
@@ -36,6 +34,8 @@ def SelectActiveChannel(img):
     Returns:
         img: nonzero 2D image channel
     """
+    # set type here
+    img = img.astype(np.float32, copy=False)
     
     # if only 2 dims, return as-is
     if img.ndim == 2:
@@ -54,31 +54,88 @@ def SelectActiveChannel(img):
             return ch, i
 
 
-# looks like sigma = 0.5 is okay
-def BackgroundSubtraction(img, sigma = 0.5):
-    # TODO this function is acting strange, could probably use code from ZL python file here
-    # ensure type
-    # img = img.astype(np.float32)
+def BackgroundSubtraction(img, low_perc = 1.0):
+    """ (Method from Zhao Lab)
 
-    # Gaussian smoothing to estimate background
-    background = gaussian_filter(img, sigma=sigma)
+    Args:
+        img (numpy arr): Subtracts background per channel with percentile method
+        low_perc (float, optional): Percentile (0–100) used to estimate background per channel. Typical values: 0.5–2.0 for dense tissue. Defaults to 0.5.
 
-    # Subtract background
-    subtracted = background - img
-
-    # Clip negative values (optional, depends on use case)
-    subtracted = np.clip(subtracted, 0, None)
-
-    return subtracted, background
-
+    Returns:
+        numpy arr: background-subtracted image (bg is removed PER channel)
+    """
     
+    # empty out arr
+    out = np.empty_like(img)
 
-# TODO USE THIS FUNC FOR A SINGLE CHANNEL 
-def NormalizeSingleChannel(img):
-    active_ch = SelectActiveChannel(img)
+    # with channels as last dim
+    for c in range(img.shape[2]):
+        channel = img[..., c]
+        
+        # find the background for this channel
+        try:
+            bg = np.percentile(channel, low_perc)
+        except Exception:
+            bg = 0.0
+
+        # subtract the background from this channel
+        corrected = channel - bg
+        corrected[corrected < 0] = 0.0
+        out[..., c] = corrected
+
+    # return bg-subbed image
+    return out
+
+def FlatFieldCorrection(img, sigma_xy = 16,
+                       clip_percent: float = 1.0) -> np.ndarray:
+    """
+    Applies flat-field (illumination) correction to a multi-channel image.
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image of shape (H, W, C), where C is the number of channels.
+    sigma_xy : float, optional
+        Gaussian smoothing sigma (in pixels) to estimate illumination field.
+    clip_percent : float, optional
+        Percentile used to clamp the illumination field to remove extremes.
+
+    Returns
+    -------
+    np.ndarray
+        Flat-field corrected image of same shape (H, W, C), dtype float32.
+    """
     
-    
-    pass
+    corrected = np.empty_like(img)
+    eps = 1e-6 # avoid dividing by 0
+
+    for c in range(img.shape[2]):
+        channel = img[..., c]
+
+        # estimate smooth illumination field
+        # pad to reduce edge fall-off
+        pad = sigma_xy
+        padded = np.pad(channel, pad_width=pad, mode='reflect')
+        field = gaussian_filter(padded, sigma=sigma_xy, mode='nearest')
+        field = field[pad:-pad, pad:-pad]
+
+        # clamp extremes to mitigate outlier influence
+        lo = np.percentile(field, clip_percent)
+        hi = np.percentile(field, clip_percent)
+        field = np.clip(field, lo, hi)
+        
+        # normalize using mean of central region to avoid dim edges
+        H, W = channel.shape
+        central_field = field[H//4:3*H//4, W//4:3*W//4]
+        m = np.percentile(central_field, 90)
+        if m <= 0:
+            m = eps
+        field = field / m
+
+        # apply correction and clip negatives
+        corrected[..., c] = np.clip(channel / np.maximum(field, eps), 0, None)
+
+    return corrected
 
 
 # img files are 2304 x 2304
@@ -111,4 +168,23 @@ def TileImages(img, tile_size=768):
             tiled_imgs.append(tile)
 
     return tiled_imgs
+
+def DenoiseImage(img):
+    pass
+
+
+# TODO 
+def NormalizeImage(img):
+    
+    # select active channel per single stained img
+    # stack images in order
+    # background sub with stack (h, w, n)
+    
+    # tile images with stack (h, w, n)
+    # denoise each tile
+    # normalize between 0 and 1
+    # return tiles
+    pass
+
+
 
