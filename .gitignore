@@ -1,0 +1,4 @@
+# for Mac stuff
+.DS_Store
+
+__pycache__
