@@ -1,31 +1,99 @@
-import os
-from PIL import Image
 import numpy as np
-import tifffile as tiff
 from scipy.ndimage import gaussian_filter
 import matplotlib.pyplot as plt
+from pathlib import Path
+import nd2
+import tifffile
 
-from scipy.ndimage import generate_binary_structure, grey_opening
+# TODO: TEST SPLIT Z-STACK
+# TODO: TEST FULL PIPELINE
 
-# TODO: DENOISE IMAGE FUNCTION
-# TODO: COMBINE PIPELINE INTO A FUNCTION
+def SplitZImageStack(img_filepath):
+    """Splits images in a Z-stack into single images, saves them as TIF files
+    
+    Args:
+        img_filepath: Path to directory containing .nd2 files
+    """
+    # convert to Path object for easier handling
+    img_dir = Path(img_filepath)
+    
+    # get all .nd2 files in the directory
+    nd2_files = list(img_dir.glob("*.nd2"))
+    
+    if not nd2_files:
+        print(f"No .nd2 files found in {img_filepath}")
+        return
+    
+    print(f"Found {len(nd2_files)} .nd2 file(s)")
+    
+    # make output dir
+    output_dir = img_dir / "processed_zstack"
+    output_dir.mkdir(exist_ok=True)
+    print(f"Output directory: {output_dir}")
+    
+    # Process each ND2 file
+    for nd2_file in nd2_files:
+        print(f"\nProcessing: {nd2_file.name}")
+        
+        # Load the ND2 file
+        with nd2.ND2File(nd2_file) as f:
+            # Get the image stack
+            stack = f.asarray()
+            
+            # Get base filename without extension
+            base_name = nd2_file.stem
+            
+            # Determine the number of slices
+            # Stack shape can vary, but Z is typically the first dimension
+            if stack.ndim == 2:
+                # Single slice image
+                n_slices = 1
+                stack = stack[None, ...]  # Add dimension for consistent processing
+            elif stack.ndim == 3:
+                # Z-stack
+                n_slices = stack.shape[0]
+            else:
+                # Handle multi-dimensional data (e.g., Z, C, Y, X)
+                print(f"  Warning: Image has shape {stack.shape}. Assuming first dimension is Z.")
+                n_slices = stack.shape[0]
+            
+            print(f"  Found {n_slices} slice(s)")
+            
+            # Save each slice as a separate TIF file
+            for i in range(n_slices):
+                # Format slice number with leading zeros (01, 02, etc.)
+                slice_num = str(i + 1).zfill(2)
+                
+                # Create output filename
+                output_name = f"{base_name}_{slice_num}.tif"
+                output_path = output_dir / output_name
+                
+                # Extract the slice
+                if stack.ndim == 3:
+                    slice_img = stack[i]
+                else:
+                    # For higher dimensional data, take the first slice along first dimension
+                    slice_img = stack[i, ...]
+                
+                # Save as TIF
+                tifffile.imwrite(output_path, slice_img)
+                
+                if (i + 1) % 10 == 0 or i == n_slices - 1:
+                    print(f"  Saved {i + 1}/{n_slices} slices")
+    
+    print("\nProcessing complete! Saved image")
 
-def NormalizeImageChannels(img_list):
+def NormalizeImageChannels(img):
     """Scales pixel values in a 2D img between 0 and 1
     """
-    norm_img_list = []
     
-    for img in img_list:
-        
-        # scale all pixel values to floats between 0 and 1
-        img_min = img.min()
-        img_max = img.max()
-        
-        img_norm = (img - img_min) / (img_max - img_min + 1e-8)
-        
-        norm_img_list.append(img_norm)
+    # scale all pixel values to floats between 0 and 1
+    img_min = img.min()
+    img_max = img.max()
     
-    return norm_img_list
+    img_norm = (img - img_min) / (img_max - img_min + 1e-8)
+    
+    return img_norm
 
 
 def SelectActiveChannel(img):
@@ -150,18 +218,7 @@ def FlatFieldCorrection(img, sigma_xy = 200,
         
         # DEBUGGING PRINT - Visualize the field, pre and post correction
         if plot:
-            plt.figure(figsize=(12, 4))
-            plt.subplot(131)
-            plt.imshow(channel, cmap='gray')
-            plt.title('Original Channel')
-            plt.subplot(132)
-            plt.imshow(field_norm, cmap='gray')
-            plt.title('Estimated Field (normalized)')
-            plt.subplot(133)
-            plt.imshow(corrected_channel, cmap='gray')
-            plt.title('Corrected')
-            plt.colorbar()
-            plt.show()
+            plot_flat_field_correction(channel, field_norm, corrected_channel)
 
     return corrected
 
@@ -169,6 +226,8 @@ def FlatFieldCorrection(img, sigma_xy = 200,
 # img files are 2304 x 2304
 def TileImages(img, tile_size=768):
     """Tile one image into smaller images. Values to try: 384, 576, 768, 1152
+    
+    NOTE - THIS FUNCTION IS NOT BEING USED (SEE DATALOADER)
 
     Args:
         img (numpy array): 2304x2304 tissue image
@@ -198,18 +257,21 @@ def TileImages(img, tile_size=768):
     return tiled_imgs
 
 
-# TODO 
-def PreprocessImage(img):
+def PreprocessImage(full_img):
     
     # select active channel per single stained img
-    # stack images in order
-    # background sub with stack (h, w, n)
+    active_ch = SelectActiveChannel(full_img)
     
-    # tile images with stack (h, w, n)
-    # denoise each tile
+    # background sub with stack (h, w, n)
+    bg_subbed = BackgroundSubtraction(active_ch)
+    
+    # flat-field correction
+    ff_corr = FlatFieldCorrection(bg_subbed)
+    
     # normalize between 0 and 1
-    # return tiles
-    pass
+    norm_img = NormalizeImageChannels(ff_corr)
+    
+    return norm_img
 
 
 
@@ -217,12 +279,27 @@ def PreprocessImage(img):
 
 ### DEBUG PRINT FUNCS ###
 
+def plot_flat_field_correction(channel, field_norm, corrected_channel):
+    
+    plt.figure(figsize=(12, 4))
+    
+    plt.subplot(131)
+    plt.imshow(channel, cmap='gray')
+    plt.title('Original Channel')
+    
+    plt.subplot(132)
+    plt.imshow(field_norm, cmap='gray')
+    plt.title('Estimated Field (normalized)')
+    
+    plt.subplot(133)
+    plt.imshow(corrected_channel, cmap='gray')
+    
+    plt.title('Corrected')
+    plt.colorbar()
+    plt.show()
+
 def plot_background_subtraction(original, bg_values, corrected):
-    """Plot original, background visualization, and corrected images for all channels
-    
-    Also plots histograms to show the shift in intensity distribution
-    """
-    
+
     n_channels = original.shape[2]
     
     # Create figure with 4 rows (Original, Background, Corrected) 
