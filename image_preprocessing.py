@@ -3,6 +3,9 @@ from PIL import Image
 import numpy as np
 import tifffile as tiff
 from scipy.ndimage import gaussian_filter
+import matplotlib.pyplot as plt
+
+from scipy.ndimage import generate_binary_structure, grey_opening
 
 # TODO: DENOISE IMAGE FUNCTION
 # TODO: COMBINE PIPELINE INTO A FUNCTION
@@ -54,7 +57,7 @@ def SelectActiveChannel(img):
             return ch, i
 
 
-def BackgroundSubtraction(img, low_perc = 1.0):
+def BackgroundSubtraction(img, low_perc = 1.0, plot=False):
     """ (Method from Zhao Lab)
 
     Args:
@@ -67,27 +70,33 @@ def BackgroundSubtraction(img, low_perc = 1.0):
     
     # empty out arr
     out = np.empty_like(img)
+    
+    bg_images = []
 
     # with channels as last dim
     for c in range(img.shape[2]):
         channel = img[..., c]
         
         # find the background for this channel
-        try:
-            bg = np.percentile(channel, low_perc)
-        except Exception:
-            bg = 0.0
+        bg = np.percentile(channel, low_perc)
+
+        # for debugging
+        bg_images.append(bg)
 
         # subtract the background from this channel
         corrected = channel - bg
         corrected[corrected < 0] = 0.0
         out[..., c] = corrected
+    
+        # Plot if requested
+    if plot:
+        plot_background_subtraction(img, bg_images, out)
 
     # return bg-subbed image
     return out
 
-def FlatFieldCorrection(img, sigma_xy = 16,
-                       clip_percent: float = 1.0) -> np.ndarray:
+def FlatFieldCorrection(img, sigma_xy = 200,
+                       clip_percent: float = 1.0, plot = False) -> np.ndarray:
     """
     Applies flat-field (illumination) correction to a multi-channel image.
 
@@ -112,28 +121,47 @@ def FlatFieldCorrection(img, sigma_xy = 16,
     for c in range(img.shape[2]):
         channel = img[..., c]
 
-        # estimate smooth illumination field
-        # pad to reduce edge fall-off
+        # estimate smooth illumination field and pad to reduce edge fall-off
         pad = sigma_xy
         padded = np.pad(channel, pad_width=pad, mode='reflect')
         field = gaussian_filter(padded, sigma=sigma_xy, mode='nearest')
         field = field[pad:-pad, pad:-pad]
 
-        # clamp extremes to mitigate outlier influence
+        # Clamp extremes (fix the bug)
         lo = np.percentile(field, clip_percent)
-        hi = np.percentile(field, clip_percent)
+        hi = np.percentile(field, 100 - clip_percent)
         field = np.clip(field, lo, hi)
-        
-        # normalize using mean of central region to avoid dim edges
+
+        # Normalize field so center region has value ~1.0
+        # This means dividing by field keeps center unchanged, boosts edges
         H, W = channel.shape
         central_field = field[H//4:3*H//4, W//4:3*W//4]
-        m = np.percentile(central_field, 90)
-        if m <= 0:
-            m = eps
-        field = field / m
-
-        # apply correction and clip negatives
-        corrected[..., c] = np.clip(channel / np.maximum(field, eps), 0, None)
+        field_mean = np.mean(central_field)
+        
+        # Now: center ≈ 1.0, dark edges < 1.0
+        field_norm = field / (field_mean + eps)
+        
+        # Divide: center stays same, edges get brightened
+        corrected_channel = channel / np.maximum(field_norm, eps)
+        corrected_channel = np.clip(corrected_channel, 0, 255)
+        
+        # fix scaling
+        corrected[..., c] = np.clip(corrected_channel, 0, np.iinfo(img.dtype).max if np.issubdtype(img.dtype, np.integer) else None)
+        
+        # DEBUGGING PRINT - Visualize the field, pre and post correction
+        if plot:
+            plt.figure(figsize=(12, 4))
+            plt.subplot(131)
+            plt.imshow(channel, cmap='gray')
+            plt.title('Original Channel')
+            plt.subplot(132)
+            plt.imshow(field_norm, cmap='gray')
+            plt.title('Estimated Field (normalized)')
+            plt.subplot(133)
+            plt.imshow(corrected_channel, cmap='gray')
+            plt.title('Corrected')
+            plt.colorbar()
+            plt.show()
 
     return corrected
 
@@ -169,12 +197,9 @@ def TileImages(img, tile_size=768):
 
     return tiled_imgs
 
-def DenoiseImage(img):
-    pass
-
 
 # TODO 
-def NormalizeImage(img):
+def PreprocessImage(img):
     
     # select active channel per single stained img
     # stack images in order
@@ -188,3 +213,62 @@ def NormalizeImage(img):
 
 
 
+
+
+### DEBUG PRINT FUNCS ###
+
+def plot_background_subtraction(original, bg_values, corrected):
+    """Plot original, background visualization, and corrected images for all channels
+    
+    Also plots histograms to show the shift in intensity distribution
+    """
+    
+    n_channels = original.shape[2]
+    
+    # Create figure with 4 rows (Original, Background, Corrected) 
+    # and n_channels columns
+    fig, axes = plt.subplots(3, n_channels, figsize=(6*n_channels, 16))
+    
+    # Handle single channel case
+    if n_channels == 1:
+        axes = axes.reshape(-1, 1)
+    
+    print("\n=== Background Subtraction Analysis ===")
+    
+    for c in range(n_channels):
+        # Original image
+        im0 = axes[0, c].imshow(original[..., c], cmap='gray')
+        axes[0, c].set_title(f'Original - Channel {c}', fontsize=12)
+        axes[0, c].axis('off')
+        plt.colorbar(im0, ax=axes[0, c], fraction=0.046, pad=0.04)
+        
+        # Background visualization (uniform image at bg value)
+        bg_img = np.full_like(original[..., c], bg_values[c], dtype=float)
+        im1 = axes[1, c].imshow(bg_img, cmap='gray', vmin=original[..., c].min(), vmax=original[..., c].max())
+        axes[1, c].set_title(f'Background Value: {bg_values[c]:.2f}', fontsize=12)
+        axes[1, c].axis('off')
+        plt.colorbar(im1, ax=axes[1, c], fraction=0.046, pad=0.04)
+        
+        # Corrected image
+        im2 = axes[2, c].imshow(corrected[..., c], cmap='gray')
+        axes[2, c].set_title(f'Corrected - Channel {c}', fontsize=12)
+        axes[2, c].axis('off')
+        plt.colorbar(im2, ax=axes[2, c], fraction=0.046, pad=0.04)
+        
+        # Print statistics
+        orig_min = original[..., c].min()
+        orig_max = original[..., c].max()
+        orig_mean = original[..., c].mean()
+        corr_min = corrected[..., c].min()
+        corr_max = corrected[..., c].max()
+        corr_mean = corrected[..., c].mean()
+        
+        print(f"\nChannel {c}:")
+        print(f"  Background value (percentile): {bg_values[c]:.2f}")
+        print(f"  Original - Min: {orig_min:.2f}, Max: {orig_max:.2f}, Mean: {orig_mean:.2f}")
+        print(f"  Corrected - Min: {corr_min:.2f}, Max: {corr_max:.2f}, Mean: {corr_mean:.2f}")
+        print(f"  Mean shift: {orig_mean - corr_mean:.2f} ({100*(orig_mean - corr_mean)/orig_mean:.2f}%)")
+        print(f"  Background as % of max: {100*bg_values[c]/orig_max:.2f}%")
+    
+    plt.tight_layout()
+    plt.show()

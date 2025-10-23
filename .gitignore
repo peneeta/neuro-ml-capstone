@@ -1,4 +1,5 @@
 # for Mac stuff
 .DS_Store
+.vscode
 
 __pycache__
