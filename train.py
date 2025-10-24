@@ -4,7 +4,11 @@ from pathlib import Path
 # custom
 from dataset import EMDataset
 from image_preprocessing import PreprocessImage
+from model import train_model, NeuroUNET
 
+##########################################
+# Model training pipeline
+##########################################
 
 # Collect image paths
 image_dir = Path("./images")
@@ -52,6 +56,11 @@ val_loader = DataLoader(
 # Example: Iterate through batches
 print(f"Training dataset: {len(train_dataset)} tiles")
 print(f"Validation dataset: {len(val_dataset)} tiles")
+
+
+# instantiate model
+model = NeuroUNET(in_channels=2, out_channels=2)
+print(f'Total parameters: {sum(p.numel() for p in model.parameters())}')
 
 for batch_idx, batch in enumerate(train_loader):
     print(f"Batch {batch_idx}: shape {batch.shape}")

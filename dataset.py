@@ -4,8 +4,9 @@ import numpy as np
 from PIL import Image
 import random
 
-
-# Dataloader for training the model
+##########################################
+# Custom dataset instantation
+##########################################
 
 class EMDataset(Dataset):
     """

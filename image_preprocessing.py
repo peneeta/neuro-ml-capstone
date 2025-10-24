@@ -5,6 +5,10 @@ from pathlib import Path
 import nd2
 import tifffile
 
+##########################################
+# Image preprocessing code
+##########################################
+
 # TODO: TEST SPLIT Z-STACK
 # TODO: TEST FULL PIPELINE
 
