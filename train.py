@@ -64,13 +64,8 @@ print(f'Total parameters: {sum(p.numel() for p in model.parameters())}')
 
 for batch_idx, batch in enumerate(train_loader):
     print(f"Batch {batch_idx}: shape {batch.shape}")
-    # batch shape: (batch_size, channels, height, width)
-    # e.g., (16, 3, 256, 256)
     
-    # TRAINING CODE
-    # outputs = model(batch)
-    # loss = criterion(outputs, targets)
-    # etc.
+    train_model(model, train_loader, val_loader)
     
     if batch_idx == 0:
         break

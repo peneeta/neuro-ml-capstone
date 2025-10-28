@@ -6,10 +6,10 @@ import nd2
 import tifffile
 
 ##########################################
-# Image preprocessing code
+# NeuroML Capstone Project
+# CMU Fall 2025
+# Image Preprocessing Code
 ##########################################
-
-# TODO: TEST FULL PIPELINE
 
 def SplitZImageStack(img_filepath, output_dir = "processed_zstack"):
     """
@@ -87,8 +87,6 @@ def SplitZImageStack(img_filepath, output_dir = "processed_zstack"):
     
     print("\nProcessing complete! Saved images")
 
-
-
 def NormalizeImageChannels(img):
     """Scales pixel values in a 2D img between 0 and 1
     """
@@ -100,7 +98,6 @@ def NormalizeImageChannels(img):
     img_norm = (img - img_min) / (img_max - img_min + 1e-8)
     
     return img_norm
-
 
 def SelectActiveChannel(img):
     """Select the color channel that is nonzero assuming unstacked (i.e. if using individual stain images like DAPI only or CB only)
@@ -130,7 +127,6 @@ def SelectActiveChannel(img):
             # return with dim 1 as last dim: (H, W, 1)
             ch = np.expand_dims(ch, axis=-1)
             return ch, i
-
 
 def BackgroundSubtraction(img, low_perc = 1.0, plot=False):
     """ (Method from Zhao Lab)
@@ -336,8 +332,6 @@ def FlatFieldCorrection(img, sigma_xy=200,
     
     return corrected
         
-
-
 # img files are 2304 x 2304
 def TileImages(img, tile_size=768):
     """Tile one image into smaller images. Values to try: 384, 576, 768, 1152
@@ -371,7 +365,7 @@ def TileImages(img, tile_size=768):
 
     return tiled_imgs
 
-
+# FULL PREPROCESSING PIPELINE
 def PreprocessImage(full_img, plot=False):
     """
     Function to preprocess a single image
@@ -384,21 +378,19 @@ def PreprocessImage(full_img, plot=False):
     """
     
     # background sub with stack (h, w, n)
-    print("Performing background subtraction")
     bg_subbed = BackgroundSubtraction(full_img, plot=plot)
     
     # flat-field correction
-    print("Performing flat-field correction")
     ff_corr = FlatFieldCorrection(bg_subbed, plot=plot)
     
     # normalize between 0 and 1
-    print("Normalizing image channels")
     norm_img = NormalizeImageChannels(ff_corr)
     
     return norm_img
 
-
-### DEBUG PRINT FUNCS ###
+##########################################
+# Debug Prints
+##########################################
 
 def plot_flat_field_correction(channel, field_norm, corrected_channel):
     

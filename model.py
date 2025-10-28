@@ -83,7 +83,6 @@ class NeuroUNET(nn.Module):
         x = self.out(x)
         return x
 
-
 def train_model(model, train_loader, val_loader, num_epochs=100, lr=1e-4, device='cuda'):
     """
     Train the UNET model
