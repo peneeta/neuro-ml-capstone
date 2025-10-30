@@ -5,6 +5,8 @@ from PIL import Image
 import random
 
 ##########################################
+# NeuroML Capstone Project
+# CMU Fall 2025
 # Custom dataset instantation
 ##########################################
 

@@ -88,16 +88,26 @@ def SplitZImageStack(img_filepath, output_dir = "processed_zstack"):
     print("\nProcessing complete! Saved images")
 
 def NormalizeImageChannels(img):
-    """Scales pixel values in a 2D img between 0 and 1
+    """Scales pixel values between 0 and 1
     """
     
-    # scale all pixel values to floats between 0 and 1
-    img_min = img.min()
-    img_max = img.max()
+    img = img.astype(np.float32)
+    corrected = np.empty_like(img)
     
-    img_norm = (img - img_min) / (img_max - img_min + 1e-8)
+    # iter over channels
+    for c in range(img.shape[0]):
+        
+        channel = img[c, ...]
     
-    return img_norm
+        # scale all pixel values to floats between 0 and 1
+        c_min = channel.min()
+        c_max = channel.max()
+        
+        c_norm = (channel - c_min) / (c_max - c_min + 1e-8)
+        
+        corrected[c, ...] = c_norm
+    
+    return corrected
 
 def SelectActiveChannel(img):
     """Select the color channel that is nonzero assuming unstacked (i.e. if using individual stain images like DAPI only or CB only)
@@ -116,18 +126,42 @@ def SelectActiveChannel(img):
     if img.ndim == 2:
         return img, 0
     
-    # move channels to first dim for iteration: (C, H, W)
+    # move channels to first dim (C, H, W)
     if img.shape[0] not in (1, 2, 3, 4):
         img = np.moveaxis(img, -1, 0)
+    
+    
+    print(img.shape)
 
     # return the first non-empty channel
     for i, ch in enumerate(img):
         if not np.all(ch == 0):
-            
-            # return with dim 1 as last dim: (H, W, 1)
-            ch = np.expand_dims(ch, axis=-1)
-            return ch, i
+            return ch.reshape(1, img.shape[1], img.shape[2]), i
 
+def ZScoreNorm(img):
+    """Perform z score normalization across the image
+    """
+    
+    img = img.astype(np.float32)
+    corrected = np.empty_like(img)
+    
+    # iter over channels (CHANNELS ARE THE FIRST DIM)
+    for c in range(img.shape[0]):
+        
+        channel = img[c, ...]
+    
+        # scale all pixel values to floats between 0 and 1
+        mean = np.mean(channel)
+        std = np.std(channel)
+        
+        if std == 0:
+            return np.zeros_like(channel)
+        
+        normalized = (channel - mean) / std
+        corrected[c, ...] = normalized
+    
+    return corrected
+    
 def BackgroundSubtraction(img, low_perc = 1.0, plot=False):
     """ (Method from Zhao Lab)
 
@@ -145,8 +179,8 @@ def BackgroundSubtraction(img, low_perc = 1.0, plot=False):
     bg_images = []
 
     # with channels as last dim
-    for c in range(img.shape[2]):
-        channel = img[..., c]
+    for c in range(img.shape[0]):
+        channel = img[c, ...]
         
         # find the background for this channel
         bg = np.percentile(channel, low_perc)
@@ -157,7 +191,7 @@ def BackgroundSubtraction(img, low_perc = 1.0, plot=False):
         # subtract the background from this channel
         corrected = channel - bg
         corrected[corrected < 0] = 0.0
-        out[..., c] = corrected
+        out[c, ...] = corrected
     
         # Plot if requested
     if plot:
@@ -190,8 +224,8 @@ def OldFlatFieldCorrection(img, sigma_xy = 200,
     corrected = np.empty_like(img)
     eps = 1e-7 # avoid dividing by 0
 
-    for c in range(img.shape[2]):
-        channel = img[..., c]
+    for c in range(img.shape[0]):
+        channel = img[c, ...]
         
         # SKIP EMPTY CHANNELS OR LOW-CONTRAST
         # Check if channel has meaningful signal (not just noise)
@@ -200,7 +234,7 @@ def OldFlatFieldCorrection(img, sigma_xy = 200,
         
         # If the signal is very weak relative to mean (likely empty/noise), skip correction
         if channel_range < channel_mean or channel_range < 1:
-            corrected[..., c] = channel
+            corrected[c, ...] = channel
             if plot:
                 print(f"Channel {c}: Skipped (range={channel_range:.2f}, mean={channel_mean:.2f})")
             continue
@@ -208,19 +242,23 @@ def OldFlatFieldCorrection(img, sigma_xy = 200,
         # estimate smooth illumination field and pad to reduce edge fall-off
         pad = sigma_xy
         padded = np.pad(channel, pad_width=pad, mode='reflect')
-        field = gaussian_filter(padded, sigma=sigma_xy, mode='nearest')
+        field = gaussian_filter(padded, sigma=sigma_xy, mode='reflect')
         field = field[pad:-pad, pad:-pad]
 
         # Clamp extremes (fix the bug)
-        lo = np.percentile(field, clip_percent)
-        hi = np.percentile(field, 100 - clip_percent)
-        field = np.clip(field, lo, hi)
+        # lo = np.percentile(field, clip_percent)
+        # hi = np.percentile(field, 100 - clip_percent)
+        # field = np.clip(field, lo, hi)
+        
+        median = np.median(field)
+        mad = np.median(np.abs(field - median))
+        field = np.clip(field, median - 3*mad, median + 3*mad)
 
         # Normalize field so center region has value ~1.0
         # This means dividing by field keeps center unchanged, boosts edges
         H, W = channel.shape
-        central_field = field[H//4:3*H//4, W//4:3*W//4]
-        field_mean = np.mean(central_field)
+        # central_field = field[H//4:3*H//4, W//4:3*W//4]
+        field_mean = np.mean(field)
         
         # Now: center ≈ 1.0, dark edges < 1.0
         field_norm = field / (field_mean + eps)
@@ -230,7 +268,7 @@ def OldFlatFieldCorrection(img, sigma_xy = 200,
         corrected_channel = np.clip(corrected_channel, 0, 255)
         
         # fix scaling
-        corrected[..., c] = np.clip(corrected_channel, 0, np.iinfo(img.dtype).max if np.issubdtype(img.dtype, np.integer) else None)
+        corrected[c, ...] = np.clip(corrected_channel, 0, np.iinfo(img.dtype).max if np.issubdtype(img.dtype, np.integer) else None)
         
         # DEBUGGING PRINT - Visualize the field, pre and post correction
         if plot:
@@ -269,8 +307,8 @@ def FlatFieldCorrection(img, sigma_xy=200,
     corrected = np.empty_like(img_float)
     eps = 1e-6
 
-    for c in range(img.shape[2]):
-        channel = img_float[..., c]
+    for c in range(img.shape[0]):
+        channel = img_float[c, ...]
         
         # Check if channel has meaningful signal (not just noise)
         channel_range = np.percentile(channel, 99) - np.percentile(channel, 1)
@@ -278,7 +316,7 @@ def FlatFieldCorrection(img, sigma_xy=200,
         
         # If the signal is very weak relative to mean (likely empty/noise), skip correction
         if channel_range < channel_mean * 0.1 or channel_range < 1:
-            corrected[..., c] = channel
+            corrected[c, ...] = channel
             if plot:
                 print(f"Channel {c}: Skipped (range={channel_range:.2f}, mean={channel_mean:.2f})")
             continue
@@ -299,7 +337,7 @@ def FlatFieldCorrection(img, sigma_xy=200,
         field_min = np.percentile(field, 0.1)
         
         if field_max - field_min < eps:
-            corrected[..., c] = channel
+            corrected[c, ...] = channel
             continue
             
         field_norm = (field - field_min) / (field_max - field_min + eps)
@@ -320,10 +358,10 @@ def FlatFieldCorrection(img, sigma_xy=200,
         orig_p99 = np.percentile(channel, 99)
         corrected_channel = np.clip(corrected_channel, 0, orig_p99 * 1.2)
         
-        corrected[..., c] = corrected_channel
+        corrected[c, ...] = corrected_channel
         
         # fix scaling
-        corrected[..., c] = np.clip(corrected_channel, 0, np.iinfo(img.dtype).max if np.issubdtype(img.dtype, np.integer) else None)
+        corrected[c, ...] = np.clip(corrected_channel, 0, np.iinfo(img.dtype).max if np.issubdtype(img.dtype, np.integer) else None)
         
         if plot:
             print(f"Channel {c}: Corrected (range={channel_range:.2f}, max_boost={np.max(field_blend):.2f}x)")
@@ -332,9 +370,9 @@ def FlatFieldCorrection(img, sigma_xy=200,
     
     return corrected
         
-# img files are 2304 x 2304
 def TileImages(img, tile_size=768):
     """Tile one image into smaller images. Values to try: 384, 576, 768, 1152
+    Img files are 2304 x 2304
     
     NOTE - THIS FUNCTION IS NOT BEING USED (SEE DATALOADER)
 
@@ -343,7 +381,7 @@ def TileImages(img, tile_size=768):
         tile_size (int, optional): Size of image. Defaults to 768.
     """
     
-    h, w, n = img.shape
+    n, h, w = img.shape
     tiled_imgs = []
     
     # if tile size not divisible, print this
@@ -360,7 +398,7 @@ def TileImages(img, tile_size=768):
         
         for x in x_starts:
             x_end = min(x + tile_size, w)
-            tile = img[y:y_end, x:x_end, :]
+            tile = img[:, x:x_end, y:y_end]
             tiled_imgs.append(tile)
 
     return tiled_imgs
@@ -383,8 +421,9 @@ def PreprocessImage(full_img, plot=False):
     # flat-field correction
     ff_corr = FlatFieldCorrection(bg_subbed, plot=plot)
     
-    # normalize between 0 and 1
-    norm_img = NormalizeImageChannels(ff_corr)
+    # norm zscore and scale
+    zsc_norm = ZScoreNorm(ff_corr)
+    norm_img = NormalizeImageChannels(zsc_norm)
     
     return norm_img
 
@@ -413,7 +452,7 @@ def plot_flat_field_correction(channel, field_norm, corrected_channel):
 
 def plot_background_subtraction(original, bg_values, corrected):
 
-    n_channels = original.shape[2]
+    n_channels = original.shape[0]
     
     # Create figure with 4 rows (Original, Background, Corrected) 
     # and n_channels columns
@@ -426,32 +465,34 @@ def plot_background_subtraction(original, bg_values, corrected):
     print("\n=== Background Subtraction Analysis ===")
     
     for c in range(n_channels):
+        
         # Original image
-        im0 = axes[0, c].imshow(original[..., c], cmap='gray')
+        im0 = axes[0, c].imshow(original[c, ...], cmap='gray')
+        
         axes[0, c].set_title(f'Original - Channel {c}', fontsize=12)
         axes[0, c].axis('off')
         plt.colorbar(im0, ax=axes[0, c], fraction=0.046, pad=0.04)
         
         # Background visualization (uniform image at bg value)
-        bg_img = np.full_like(original[..., c], bg_values[c], dtype=float)
-        im1 = axes[1, c].imshow(bg_img, cmap='gray', vmin=original[..., c].min(), vmax=original[..., c].max())
+        bg_img = np.full_like(original[c, ...], bg_values[c], dtype=float)
+        im1 = axes[1, c].imshow(bg_img, cmap='gray', vmin=original[c, ...].min(), vmax=original[c, ...].max())
         axes[1, c].set_title(f'Background Value: {bg_values[c]:.2f}', fontsize=12)
         axes[1, c].axis('off')
         plt.colorbar(im1, ax=axes[1, c], fraction=0.046, pad=0.04)
         
         # Corrected image
-        im2 = axes[2, c].imshow(corrected[..., c], cmap='gray')
+        im2 = axes[2, c].imshow(corrected[c, ...], cmap='gray')
         axes[2, c].set_title(f'Corrected - Channel {c}', fontsize=12)
         axes[2, c].axis('off')
         plt.colorbar(im2, ax=axes[2, c], fraction=0.046, pad=0.04)
         
         # Print statistics
-        orig_min = original[..., c].min()
-        orig_max = original[..., c].max()
-        orig_mean = original[..., c].mean()
-        corr_min = corrected[..., c].min()
-        corr_max = corrected[..., c].max()
-        corr_mean = corrected[..., c].mean()
+        orig_min = original[c, ...].min()
+        orig_max = original[c, ...].max()
+        orig_mean = original[c, ...].mean()
+        corr_min = corrected[c, ...].min()
+        corr_max = corrected[c, ...].max()
+        corr_mean = corrected[c, ...].mean()
         
         print(f"\nChannel {c}:")
         print(f"  Background value (percentile): {bg_values[c]:.2f}")

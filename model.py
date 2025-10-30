@@ -1,9 +1,13 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.utils.data import DataLoader
 
-# TODO: check the architecture - maybe tweak if performance is bad
+##########################################
+# NeuroML Capstone Project
+# CMU Fall 2025
+# NeuroUNET model and training/validation
+# functions
+##########################################
 
 class DoubleConv(nn.Module):
     """Double convolution block: Conv2d -> BatchNorm -> ReLU -> Conv2d -> BatchNorm -> ReLU"""
@@ -96,7 +100,7 @@ def train_model(model, train_loader, val_loader, num_epochs=100, lr=1e-4, device
         device: Device to train on ('cuda' or 'cpu')
     """
     model = model.to(device)
-    criterion = nn.L1Loss()  # Mean Absolute Error
+    criterion = nn.L1Loss()  # MAE loss
     optimizer = optim.Adam(model.parameters(), lr=lr)
     
     best_val_loss = float('inf')
