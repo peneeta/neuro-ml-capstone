@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import nd2
 import tifffile
+import os
 
 ##########################################
 # NeuroML Capstone Project
@@ -87,27 +88,43 @@ def SplitZImageStack(img_filepath, output_dir = "processed_zstack"):
     
     print("\nProcessing complete! Saved images")
 
-def NormalizeImageChannels(img):
-    """Scales pixel values between 0 and 1
-    """
+def PreprocessSplitImages(img_filepath, output_dir = "preprocessed"):
+
+    # convert to Path object for easier handling
+    img_dir = Path(img_filepath)
     
-    img = img.astype(np.float32)
-    corrected = np.empty_like(img)
+    # get all .tif files in the directory
+    tif_files = list(img_dir.glob("*.tif"))
     
-    # iter over channels
-    for c in range(img.shape[0]):
+    # check if there are any
+    if not tif_files:
+        print(f"No .tif files found in {img_filepath}")
+        return
+    
+    print(f"Found {len(tif_files)} img file(s)")
+    
+    # make output dir if not exist
+    output_dir = Path(output_dir)
+    output_dir.mkdir(exist_ok=True)
+    print(f"Output directory: {output_dir}")
+    
+    # iterate and preprocess all files
+    for im in tif_files:
+        print(f"\nProcessing: {im.name}")
         
-        channel = img[c, ...]
-    
-        # scale all pixel values to floats between 0 and 1
-        c_min = channel.min()
-        c_max = channel.max()
+        # Open file - tifffile handles multi-channel images
+        curr_im = tifffile.imread(im)
         
-        c_norm = (channel - c_min) / (c_max - c_min + 1e-8)
+        # preprocess
+        processed = PreprocessImage(curr_im)
         
-        corrected[c, ...] = c_norm
+        # Save to file with prefix _pr.tif within the output_dir
+        output_filename = im.stem + "_pr.tif"
+        output_path = output_dir / output_filename
+        tifffile.imwrite(output_path, processed)
+        print(f"Saved: {output_filename}")
     
-    return corrected
+    print("\nProcessing complete! Saved images")
 
 def SelectActiveChannel(img):
     """Select the color channel that is nonzero assuming unstacked (i.e. if using individual stain images like DAPI only or CB only)
@@ -138,6 +155,27 @@ def SelectActiveChannel(img):
         if not np.all(ch == 0):
             return ch.reshape(1, img.shape[1], img.shape[2]), i
 
+def NormalizeImageChannels(img):
+    """Scales pixel values between 0 and 1
+    """
+    
+    corrected = np.empty_like(img)
+    
+    # iter over channels
+    for c in range(img.shape[0]):
+        
+        channel = img[c, ...]
+    
+        # scale all pixel values to floats between 0 and 1
+        c_min = channel.min()
+        c_max = channel.max()
+        
+        c_norm = (channel - c_min) / (c_max - c_min + 1e-8)
+        
+        corrected[c, ...] = c_norm
+    
+    return corrected
+
 def ZScoreNorm(img):
     """Perform z score normalization across the image
     """
@@ -154,11 +192,12 @@ def ZScoreNorm(img):
         mean = np.mean(channel)
         std = np.std(channel)
         
+        # in case the channel is empty just return it
         if std == 0:
-            return np.zeros_like(channel)
-        
-        normalized = (channel - mean) / std
-        corrected[c, ...] = normalized
+            corrected[c, ...] = channel
+        else:
+            normalized = (channel - mean) / std
+            corrected[c, ...] = normalized
     
     return corrected
     
@@ -244,20 +283,10 @@ def OldFlatFieldCorrection(img, sigma_xy = 200,
         padded = np.pad(channel, pad_width=pad, mode='reflect')
         field = gaussian_filter(padded, sigma=sigma_xy, mode='reflect')
         field = field[pad:-pad, pad:-pad]
-
-        # Clamp extremes (fix the bug)
-        # lo = np.percentile(field, clip_percent)
-        # hi = np.percentile(field, 100 - clip_percent)
-        # field = np.clip(field, lo, hi)
         
         median = np.median(field)
         mad = np.median(np.abs(field - median))
         field = np.clip(field, median - 3*mad, median + 3*mad)
-
-        # Normalize field so center region has value ~1.0
-        # This means dividing by field keeps center unchanged, boosts edges
-        H, W = channel.shape
-        # central_field = field[H//4:3*H//4, W//4:3*W//4]
         field_mean = np.mean(field)
         
         # Now: center ≈ 1.0, dark edges < 1.0
@@ -317,6 +346,7 @@ def FlatFieldCorrection(img, sigma_xy=200,
         # If the signal is very weak relative to mean (likely empty/noise), skip correction
         if channel_range < channel_mean * 0.1 or channel_range < 1:
             corrected[c, ...] = channel
+            
             if plot:
                 print(f"Channel {c}: Skipped (range={channel_range:.2f}, mean={channel_mean:.2f})")
             continue
@@ -415,7 +445,11 @@ def PreprocessImage(full_img, plot=False):
         preprocessed img
     """
     
-    # background sub with stack (h, w, n)
+    # verify that channels are first dim
+    if full_img.shape[0] not in [1, 2, 3, 4]:
+        full_img = np.moveaxis(full_img, -1, 0)
+    
+    # background sub 
     bg_subbed = BackgroundSubtraction(full_img, plot=plot)
     
     # flat-field correction

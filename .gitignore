@@ -8,3 +8,4 @@ __pycache__
 # data - too large
 images/60x_z001.nd2
 images/processed_zstack
+images/preprocessed

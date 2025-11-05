@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from tqdm import tqdm
 
 ##########################################
 # NeuroML Capstone Project
@@ -110,7 +111,10 @@ def train_model(model, train_loader, val_loader, num_epochs=100, lr=1e-4, device
         model.train()
         train_loss = 0.0
         
-        for batch_idx, images in enumerate(train_loader):
+        # Add tqdm progress bar for batches
+        train_pbar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{num_epochs} [Train]')
+        
+        for batch_idx, images in enumerate(train_pbar):
             images = images.to(device)
             
             # Split the 4-channel image: first 2 channels as input, last 2 as target
@@ -129,6 +133,9 @@ def train_model(model, train_loader, val_loader, num_epochs=100, lr=1e-4, device
             optimizer.step()
             
             train_loss += loss.item()
+            
+            # Update progress bar with current loss
+            train_pbar.set_postfix({'loss': loss.item()})
         
         avg_train_loss = train_loss / len(train_loader)
         
@@ -136,8 +143,11 @@ def train_model(model, train_loader, val_loader, num_epochs=100, lr=1e-4, device
         model.eval()
         val_loss = 0.0
         
+        # Add tqdm progress bar for validation
+        val_pbar = tqdm(val_loader, desc=f'Epoch {epoch+1}/{num_epochs} [Val]')
+        
         with torch.no_grad():
-            for images in val_loader:
+            for images in val_pbar:
                 images = images.to(device)
                 inputs = images[:, :2, :, :]
                 targets = images[:, 2:, :, :]
@@ -145,10 +155,13 @@ def train_model(model, train_loader, val_loader, num_epochs=100, lr=1e-4, device
                 outputs = model(inputs)
                 loss = criterion(outputs, targets)
                 val_loss += loss.item()
+                
+                # Update progress bar with current loss
+                val_pbar.set_postfix({'loss': loss.item()})
         
         avg_val_loss = val_loss / len(val_loader)
         
-        # Print progress
+        # Print epoch summary
         print(f'Epoch [{epoch+1}/{num_epochs}], '
               f'Train Loss: {avg_train_loss:.4f}, '
               f'Val Loss: {avg_val_loss:.4f}')
