@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
+import numpy as np
+import tifffile
+import wandb
 
 ##########################################
 # NeuroML Capstone Project
@@ -88,7 +91,7 @@ class NeuroUNET(nn.Module):
         x = self.out(x)
         return x
 
-def train_model(model, train_loader, val_loader, num_epochs=100, lr=1e-4, device='cuda'):
+def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-4, device='cuda'):
     """
     Train the UNET model
     
@@ -100,21 +103,32 @@ def train_model(model, train_loader, val_loader, num_epochs=100, lr=1e-4, device
         lr: Learning rate
         device: Device to train on ('cuda' or 'cpu')
     """
+    
     model = model.to(device)
     criterion = nn.L1Loss()  # MAE loss
     optimizer = optim.Adam(model.parameters(), lr=lr)
-    
     best_val_loss = float('inf')
+    
+    # add wandb for plotting
+    wandb.init(
+        project="NeuroUNET Testing",
+        config={
+            "model_name": "NeuroUNET",
+            "learning_rate": 6e-4,
+            "scheduler_step_size": 3,
+            "scheduler_gamma": 0.1,
+            "epochs": 10,
+        }
+    )
     
     for epoch in range(num_epochs):
         # Training phase
         model.train()
         train_loss = 0.0
         
-        # Add tqdm progress bar for batches
-        train_pbar = tqdm(train_loader, desc=f'Epoch {epoch+1}/{num_epochs} [Train]')
+        prog = tqdm(train_loader, desc=f'Epoch {epoch+1}/{num_epochs} [Train]')
         
-        for batch_idx, images in enumerate(train_pbar):
+        for batch_idx, images in enumerate(prog):
             images = images.to(device)
             
             # Split the 4-channel image: first 2 channels as input, last 2 as target
@@ -134,9 +148,14 @@ def train_model(model, train_loader, val_loader, num_epochs=100, lr=1e-4, device
             
             train_loss += loss.item()
             
+            wandb.log({
+                "train/loss": loss.item(),
+                "epoch": epoch
+            })
+            
             # Update progress bar with current loss
-            train_pbar.set_postfix({'loss': loss.item()})
-        
+            prog.set_postfix({'loss': loss.item()})
+            
         avg_train_loss = train_loss / len(train_loader)
         
         # Validation phase
@@ -161,16 +180,25 @@ def train_model(model, train_loader, val_loader, num_epochs=100, lr=1e-4, device
         
         avg_val_loss = val_loss / len(val_loader)
         
-        # Print epoch summary
+        # TODO: fix LR I think
+        wandb.log({
+                "val/loss": avg_val_loss,
+                "learning_rate": lr,
+                "epoch": epoch
+        })
+        
+        # print summary
         print(f'Epoch [{epoch+1}/{num_epochs}], '
               f'Train Loss: {avg_train_loss:.4f}, '
               f'Val Loss: {avg_val_loss:.4f}')
         
-        # Save best model
+        # save best model state dict
         if avg_val_loss < best_val_loss:
             best_val_loss = avg_val_loss
             torch.save(model.state_dict(), 'best_unet_model.pth')
-            print(f'Best model saved at epoch {epoch+1}')
+            print(f'saved best state dict for epoch {epoch+1}')
+    
+    wandb.finish()
     
     print('Training completed!')
     return model

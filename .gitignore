@@ -9,3 +9,4 @@ __pycache__
 images/60x_z001.nd2
 images/processed_zstack
 images/preprocessed
+images/subdivided

@@ -2,6 +2,7 @@ from torch.utils.data import Dataset
 import numpy as np
 import tifffile
 import random
+import torch
 
 ##########################################
 # NeuroML Capstone Project
@@ -65,6 +66,9 @@ class EMDataset(Dataset):
         # Apply augmentation if enabled
         if self.augment:
             tile = self._augment(tile)
+            
+        # use torch tensor instead of numpy arr    
+        tile = torch.from_numpy(tile).float()
         
         return tile
     

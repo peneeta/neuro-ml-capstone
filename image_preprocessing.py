@@ -88,6 +88,67 @@ def SplitZImageStack(img_filepath, output_dir = "processed_zstack"):
     
     print("\nProcessing complete! Saved images")
 
+
+def SplitSingleImages(img_dir, output_dir, tile_size=576):
+    
+    """
+    Tile one image into smaller images. Values to try: 384, 576, 768, 1152
+    Img files are 2304 x 2304
+    """
+    
+    # select all image files from img_filepath
+    os.makedirs(output_dir, exist_ok=True)
+    img_dir = Path(img_dir)
+    img_files = list(img_dir.glob("*.tif"))
+    
+    if not img_files:
+        print(f"No .tif files found in {img_dir}")
+        return
+    
+    total_tiles = 0
+    
+    # iterate over image files
+    for img_filepath in img_files:
+        print(f"PROCESSING {img_filepath}")
+        img = tifffile.imread(img_filepath)
+        _, height, width = img.shape
+        
+        # original basename
+        base_name = os.path.splitext(os.path.basename(img_filepath))[0]
+        
+        
+        tiles_x = width // tile_size
+        tiles_y = height // tile_size
+        
+        tile_number = 0
+        
+        # tile the image
+        for y in range(tiles_y):
+            for x in range(tiles_x):
+                
+                # tile boundaries
+                top = y * tile_size
+                left = x * tile_size
+                bottom = top + tile_size
+                right = left + tile_size
+                
+                # get tile
+                tile = img[:, top:bottom, left:right]
+                
+                # output name
+                output_filename = f"{base_name}_part_{tile_number}.tif"
+                output_path = os.path.join(output_dir, output_filename)
+                
+                # save im
+                tifffile.imwrite(output_path, tile)
+                
+                tile_number += 1
+        
+        total_tiles += tile_number
+        
+    print(f"Finished - created {total_tiles} tiles")
+
+
 def PreprocessSplitImages(img_filepath, output_dir = "preprocessed"):
 
     # convert to Path object for easier handling
@@ -403,8 +464,6 @@ def FlatFieldCorrection(img, sigma_xy=200,
 def TileImages(img, tile_size=768):
     """Tile one image into smaller images. Values to try: 384, 576, 768, 1152
     Img files are 2304 x 2304
-    
-    NOTE - THIS FUNCTION IS NOT BEING USED (SEE DATALOADER)
 
     Args:
         img (numpy array): 2304x2304 tissue image
