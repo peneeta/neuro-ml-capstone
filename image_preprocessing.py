@@ -88,7 +88,6 @@ def SplitZImageStack(img_filepath, output_dir = "processed_zstack"):
     
     print("\nProcessing complete! Saved images")
 
-
 def SplitSingleImages(img_dir, output_dir, tile_size=576):
     
     """
@@ -111,43 +110,49 @@ def SplitSingleImages(img_dir, output_dir, tile_size=576):
     for img_filepath in img_files:
         print(f"PROCESSING {img_filepath}")
         img = tifffile.imread(img_filepath)
-        _, height, width = img.shape
         
-        # original basename
-        base_name = os.path.splitext(os.path.basename(img_filepath))[0]
+        if len(img.shape) != 3 and img.shape[0] != 4:
+            print("Skipping")
+            print("Curr img shape:", img.shape)
+            continue
         
-        
-        tiles_x = width // tile_size
-        tiles_y = height // tile_size
-        
-        tile_number = 0
-        
-        # tile the image
-        for y in range(tiles_y):
-            for x in range(tiles_x):
-                
-                # tile boundaries
-                top = y * tile_size
-                left = x * tile_size
-                bottom = top + tile_size
-                right = left + tile_size
-                
-                # get tile
-                tile = img[:, top:bottom, left:right]
-                
-                # output name
-                output_filename = f"{base_name}_part_{tile_number}.tif"
-                output_path = os.path.join(output_dir, output_filename)
-                
-                # save im
-                tifffile.imwrite(output_path, tile)
-                
-                tile_number += 1
-        
-        total_tiles += tile_number
+        else:
+            print("IMAGE SHAPE", img.shape)
+            _, height, width = img.shape
+            
+            # original basename
+            base_name = os.path.splitext(os.path.basename(img_filepath))[0]
+            
+            tiles_x = width // tile_size
+            tiles_y = height // tile_size
+            
+            tile_number = 0
+            
+            # tile the image
+            for y in range(tiles_y):
+                for x in range(tiles_x):
+                    
+                    # tile boundaries
+                    top = y * tile_size
+                    left = x * tile_size
+                    bottom = top + tile_size
+                    right = left + tile_size
+                    
+                    # get tile
+                    tile = img[:, top:bottom, left:right]
+                    
+                    # output name
+                    output_filename = f"{base_name}_part_{tile_number}.tif"
+                    output_path = os.path.join(output_dir, output_filename)
+                    
+                    # save im
+                    tifffile.imwrite(output_path, tile)
+                    
+                    tile_number += 1
+            
+            total_tiles += tile_number
         
     print(f"Finished - created {total_tiles} tiles")
-
 
 def PreprocessSplitImages(img_filepath, output_dir = "preprocessed"):
 
@@ -178,6 +183,8 @@ def PreprocessSplitImages(img_filepath, output_dir = "preprocessed"):
         
         # preprocess
         processed = PreprocessImage(curr_im)
+        
+        print("PROCESSED IMG SHAPE:", processed.shape)
         
         # Save to file with prefix _pr.tif within the output_dir
         output_filename = im.stem + "_pr.tif"
@@ -299,72 +306,6 @@ def BackgroundSubtraction(img, low_perc = 1.0, plot=False):
 
     # return bg-subbed image
     return out
-
-def OldFlatFieldCorrection(img, sigma_xy = 200,
-                       clip_percent: float = 1.0, plot = False) -> np.ndarray:
-    """
-    Applies flat-field (illumination) correction to a multi-channel image.
-    OLD VERSION - odd results with the image stack, field is not smooth
-
-    Parameters
-    ----------
-    img : np.ndarray
-        Input image of shape (H, W, C), where C is the number of channels.
-    sigma_xy : float, optional
-        Gaussian smoothing sigma (in pixels) to estimate illumination field.
-    clip_percent : float, optional
-        Percentile used to clamp the illumination field to remove extremes.
-
-    Returns
-    -------
-    np.ndarray
-        Flat-field corrected image of same shape (H, W, C), dtype float32.
-    """
-    
-    corrected = np.empty_like(img)
-    eps = 1e-7 # avoid dividing by 0
-
-    for c in range(img.shape[0]):
-        channel = img[c, ...]
-        
-        # SKIP EMPTY CHANNELS OR LOW-CONTRAST
-        # Check if channel has meaningful signal (not just noise)
-        channel_range = np.percentile(channel, 99) - np.percentile(channel, 1)
-        channel_mean = np.mean(channel)
-        
-        # If the signal is very weak relative to mean (likely empty/noise), skip correction
-        if channel_range < channel_mean or channel_range < 1:
-            corrected[c, ...] = channel
-            if plot:
-                print(f"Channel {c}: Skipped (range={channel_range:.2f}, mean={channel_mean:.2f})")
-            continue
-
-        # estimate smooth illumination field and pad to reduce edge fall-off
-        pad = sigma_xy
-        padded = np.pad(channel, pad_width=pad, mode='reflect')
-        field = gaussian_filter(padded, sigma=sigma_xy, mode='reflect')
-        field = field[pad:-pad, pad:-pad]
-        
-        median = np.median(field)
-        mad = np.median(np.abs(field - median))
-        field = np.clip(field, median - 3*mad, median + 3*mad)
-        field_mean = np.mean(field)
-        
-        # Now: center ≈ 1.0, dark edges < 1.0
-        field_norm = field / (field_mean + eps)
-        
-        # Divide: center stays same, edges get brightened
-        corrected_channel = channel / np.maximum(field_norm, eps)
-        corrected_channel = np.clip(corrected_channel, 0, 255)
-        
-        # fix scaling
-        corrected[c, ...] = np.clip(corrected_channel, 0, np.iinfo(img.dtype).max if np.issubdtype(img.dtype, np.integer) else None)
-        
-        # DEBUGGING PRINT - Visualize the field, pre and post correction
-        if plot:
-            plot_flat_field_correction(channel, field_norm, corrected_channel)
-
-    return corrected
 
 def FlatFieldCorrection(img, sigma_xy=200,
                        clip_percent: float = 1.0, 
@@ -505,7 +446,7 @@ def PreprocessImage(full_img, plot=False):
     """
     
     # verify that channels are first dim
-    if full_img.shape[0] not in [1, 2, 3, 4]:
+    if full_img.shape[0] != 4:
         full_img = np.moveaxis(full_img, -1, 0)
     
     # background sub 
@@ -519,6 +460,73 @@ def PreprocessImage(full_img, plot=False):
     norm_img = NormalizeImageChannels(zsc_norm)
     
     return norm_img
+
+def OldFlatFieldCorrection(img, sigma_xy = 200,
+                       clip_percent: float = 1.0, plot = False) -> np.ndarray:
+    """
+    Applies flat-field (illumination) correction to a multi-channel image.
+    OLD VERSION - odd results with the image stack, field is not smooth
+
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image of shape (H, W, C), where C is the number of channels.
+    sigma_xy : float, optional
+        Gaussian smoothing sigma (in pixels) to estimate illumination field.
+    clip_percent : float, optional
+        Percentile used to clamp the illumination field to remove extremes.
+
+    Returns
+    -------
+    np.ndarray
+        Flat-field corrected image of same shape (H, W, C), dtype float32.
+    """
+    
+    corrected = np.empty_like(img)
+    eps = 1e-7 # avoid dividing by 0
+
+    for c in range(img.shape[0]):
+        channel = img[c, ...]
+        
+        # SKIP EMPTY CHANNELS OR LOW-CONTRAST
+        # Check if channel has meaningful signal (not just noise)
+        channel_range = np.percentile(channel, 99) - np.percentile(channel, 1)
+        channel_mean = np.mean(channel)
+        
+        # If the signal is very weak relative to mean (likely empty/noise), skip correction
+        if channel_range < channel_mean or channel_range < 1:
+            corrected[c, ...] = channel
+            if plot:
+                print(f"Channel {c}: Skipped (range={channel_range:.2f}, mean={channel_mean:.2f})")
+            continue
+
+        # estimate smooth illumination field and pad to reduce edge fall-off
+        pad = sigma_xy
+        padded = np.pad(channel, pad_width=pad, mode='reflect')
+        field = gaussian_filter(padded, sigma=sigma_xy, mode='reflect')
+        field = field[pad:-pad, pad:-pad]
+        
+        median = np.median(field)
+        mad = np.median(np.abs(field - median))
+        field = np.clip(field, median - 3*mad, median + 3*mad)
+        field_mean = np.mean(field)
+        
+        # Now: center ≈ 1.0, dark edges < 1.0
+        field_norm = field / (field_mean + eps)
+        
+        # Divide: center stays same, edges get brightened
+        corrected_channel = channel / np.maximum(field_norm, eps)
+        corrected_channel = np.clip(corrected_channel, 0, 255)
+        
+        # fix scaling
+        corrected[c, ...] = np.clip(corrected_channel, 0, np.iinfo(img.dtype).max if np.issubdtype(img.dtype, np.integer) else None)
+        
+        # DEBUGGING PRINT - Visualize the field, pre and post correction
+        if plot:
+            plot_flat_field_correction(channel, field_norm, corrected_channel)
+
+    return corrected
+
 
 ##########################################
 # Debug Prints

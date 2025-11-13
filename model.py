@@ -91,6 +91,31 @@ class NeuroUNET(nn.Module):
         x = self.out(x)
         return x
 
+def dice_loss(pred, target, smooth=1e-6):
+    """
+    Calculate Dice loss for segmentation tasks
+    
+    Args:
+        pred: Predicted output from model
+        target: Ground truth target
+        smooth: Smoothing factor to avoid division by zero
+    
+    Returns:
+        Dice loss value (1 - Dice coefficient)
+    """
+    # Flatten the tensors
+    pred_flat = pred.contiguous().view(-1)
+    target_flat = target.contiguous().view(-1)
+    
+    # Calculate intersection and union
+    intersection = (pred_flat * target_flat).sum()
+    
+    # Dice coefficient
+    dice_coeff = (2. * intersection + smooth) / (pred_flat.sum() + target_flat.sum() + smooth)
+    
+    # Return Dice loss (1 - Dice coefficient)
+    return 1 - dice_coeff
+
 def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-4, device='cuda'):
     """
     Train the UNET model
@@ -105,7 +130,7 @@ def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-4, device='
     """
     
     model = model.to(device)
-    criterion = nn.L1Loss()  # MAE loss
+    # criterion = nn.L1Loss()  # MAE loss - REMOVED
     optimizer = optim.Adam(model.parameters(), lr=lr)
     best_val_loss = float('inf')
     
@@ -118,11 +143,12 @@ def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-4, device='
             "scheduler_step_size": 3,
             "scheduler_gamma": 0.1,
             "epochs": 10,
+            "loss_function": "dice_loss",
         }
     )
     
     for epoch in range(num_epochs):
-        # Training phase
+        ##### TRAINING #####
         model.train()
         train_loss = 0.0
         
@@ -139,8 +165,8 @@ def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-4, device='
             optimizer.zero_grad()
             outputs = model(inputs)
             
-            # Compute loss
-            loss = criterion(outputs, targets)
+            # Compute loss using Dice loss
+            loss = dice_loss(outputs, targets)
             
             # Backward pass
             loss.backward()
@@ -158,11 +184,11 @@ def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-4, device='
             
         avg_train_loss = train_loss / len(train_loader)
         
-        # Validation phase
+        ##### VALIDATION #####
         model.eval()
         val_loss = 0.0
         
-        # Add tqdm progress bar for validation
+        # tqdm progress bar
         val_pbar = tqdm(val_loader, desc=f'Epoch {epoch+1}/{num_epochs} [Val]')
         
         with torch.no_grad():
@@ -172,7 +198,7 @@ def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-4, device='
                 targets = images[:, 2:, :, :]
                 
                 outputs = model(inputs)
-                loss = criterion(outputs, targets)
+                loss = dice_loss(outputs, targets)
                 val_loss += loss.item()
                 
                 # Update progress bar with current loss

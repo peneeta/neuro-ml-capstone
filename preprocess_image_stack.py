@@ -11,7 +11,8 @@ import time
 ##################################################
 # split single stack into multiple images
 z_stck_path = "images"
-SplitZImageStack(z_stck_path)
+output_dir = "processed_zstack"
+SplitZImageStack(z_stck_path, output_dir)
 
 ##################################################
 # preprocess the images
@@ -30,5 +31,5 @@ print(f"Preprocessing took {elapsed_time:.6f} seconds.")
 img_dir = "./images/preprocessed"
 output_dir = "./images/subdivided"
 
-# TODO fix this function
 SplitSingleImages(img_dir, output_dir)
+
