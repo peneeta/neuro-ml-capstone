@@ -5,6 +5,7 @@ from pathlib import Path
 import nd2
 import tifffile
 import os
+import cv2
 
 ##########################################
 # NeuroML Capstone Project
@@ -244,11 +245,20 @@ def NormalizeImageChannels(img):
     
     return corrected
 
+def GaussianBlur(img):
+    # Apply a 1px gaussian blur over the input image
+    blurred_image = np.zeros_like(img)
+    
+    for c in range(4):
+        blurred_image[c] = gaussian_filter(img[c], sigma=1)
+    
+    return blurred_image
+
 def ZScoreNorm(img):
     """Perform z score normalization across the image
     """
     
-    img = img.astype(np.float32)
+    img = img.astype(np.float64)
     corrected = np.empty_like(img)
     
     # iter over channels (CHANNELS ARE THE FIRST DIM)
@@ -308,30 +318,12 @@ def BackgroundSubtraction(img, low_perc = 1.0, plot=False):
     return out
 
 def FlatFieldCorrection(img, sigma_xy=200,
-                       clip_percent: float = 1.0, 
+                       clip_percent: float = 0.5,
                        correction_strength: float = 0.5,
                        plot=False) -> np.ndarray:
     """
     Applies flat-field (illumination) correction to a multi-channel image.
-    Brightens dark regions while preserving bright regions.
-
-    Parameters
-    ----------
-    img : np.ndarray
-        Input image of shape (H, W, C), where C is the number of channels.
-    sigma_xy : float, optional
-        Gaussian smoothing sigma (in pixels) to estimate illumination field.
-    clip_percent : float, optional
-        Percentile used to clamp the illumination field to remove extremes.
-    correction_strength : float, optional
-        Strength of correction (0-1). 1.0 = full correction, 0.5 = half correction.
-    plot : bool, optional
-        Whether to plot the correction process.
-
-    Returns
-    -------
-    np.ndarray
-        Flat-field corrected image of same shape (H, W, C).
+    Normalizes illumination across the image.
     """
     
     img_float = img.astype(np.float32)
@@ -341,65 +333,59 @@ def FlatFieldCorrection(img, sigma_xy=200,
     for c in range(img.shape[0]):
         channel = img_float[c, ...]
         
-        # Check if channel has meaningful signal (not just noise)
         channel_range = np.percentile(channel, 99) - np.percentile(channel, 1)
         channel_mean = np.mean(channel)
         
-        # If the signal is very weak relative to mean (likely empty/noise), skip correction
+        # skip if channel doesn't have a ton of signal
         if channel_range < channel_mean * 0.1 or channel_range < 1:
             corrected[c, ...] = channel
-            
             if plot:
                 print(f"Channel {c}: Skipped (range={channel_range:.2f}, mean={channel_mean:.2f})")
             continue
 
-        # Estimate smooth illumination field with proper padding
-        pad = sigma_xy
+        # Estimate smooth illumination field - Gaussian w large radius
+        pad = int(sigma_xy)
         padded = np.pad(channel, pad_width=pad, mode='reflect')
         field = gaussian_filter(padded.astype(np.float64), sigma=sigma_xy, mode='nearest')
         field = field[pad:-pad, pad:-pad]
         
-        # Clamp extremes (fix the bug)
-        lo = np.percentile(field, clip_percent)
-        hi = np.percentile(field, 100 - clip_percent)
-        field = np.clip(field, lo, hi)
+        # Optional: Clip extreme outliers in the field
+        if clip_percent > 0:
+            lo = np.percentile(field, clip_percent)
+            hi = np.percentile(field, 100 - clip_percent)
+            field = np.clip(field, lo, hi)
 
-        # Normalize field to [0, 1] range where 1.0 = brightest areas
-        field_max = np.percentile(field, 99.9)
-        field_min = np.percentile(field, 0.1)
+        # Normalize field
+        field_mean = np.mean(field)
+        field_norm = field / (field_mean + eps)  # Now centered around 1.0
         
-        if field_max - field_min < eps:
-            corrected[c, ...] = channel
-            continue
-            
-        field_norm = (field - field_min) / (field_max - field_min + eps)
-        # field_norm now ranges from ~0 (darkest) to ~1 (brightest)
+        # limit normalization (prevent large corrections)
+        field_norm = np.clip(field_norm, 0.2, 5.0)  # Allow 5x boost, 5x reduction
         
-        # Prevent division by very small numbers (limit boost to 5x max)
-        field_norm = np.clip(field_norm, 0.2, 1.0)
+        # Apply correction with strength blending
+        # When strength=1.0: divide by field (full correction)
+        # When strength=0.0: divide by 1.0 (no correction)
+        field_blend = correction_strength * field_norm + (1.0 - correction_strength) * 1.0
         
-        # Apply partial correction using correction_strength
-        # correction_strength = 1.0: full correction (divide by field)
-        # correction_strength = 0.0: no correction (divide by 1.0)
-        field_corrected = 1.0 / field_norm
-        field_blend = correction_strength * (field_corrected - 1.0) + 1.0
+        corrected_channel = channel / field_blend
         
-        corrected_channel = channel * field_blend
+        # Scale to preserve original intensity range
+        orig_mean = np.mean(channel)
+        corrected_mean = np.mean(corrected_channel)
+        corrected_channel = corrected_channel * (orig_mean / (corrected_mean + eps))
         
-        # Clip to reasonable range - don't exceed 1.2x the original 99th percentile
-        orig_p99 = np.percentile(channel, 99)
-        corrected_channel = np.clip(corrected_channel, 0, orig_p99 * 1.2)
+        # final clipping
+        if np.issubdtype(img.dtype, np.integer):
+            corrected_channel = np.clip(corrected_channel, 0, np.iinfo(img.dtype).max)
+        else:
+            corrected_channel = np.clip(corrected_channel, 0, None)
         
         corrected[c, ...] = corrected_channel
         
-        # fix scaling
-        corrected[c, ...] = np.clip(corrected_channel, 0, np.iinfo(img.dtype).max if np.issubdtype(img.dtype, np.integer) else None)
-        
         if plot:
-            print(f"Channel {c}: Corrected (range={channel_range:.2f}, max_boost={np.max(field_blend):.2f}x)")
+            print(f"Channel {c}: Corrected (range={channel_range:.2f})")
             plot_flat_field_correction(channel, field_norm, corrected_channel)
 
-    
     return corrected
         
 def TileImages(img, tile_size=768):
@@ -433,6 +419,59 @@ def TileImages(img, tile_size=768):
 
     return tiled_imgs
 
+def CLAHEContrastAdjustment(img, clip_limit = 2.0, tile_size = 4):
+    """
+    Enhances contrast of a multi-channel image after flat-field correction.
+    
+    Parameters
+    ----------
+    img : np.ndarray
+        Input image of shape (C, H, W)
+    method : str
+        'clahe' - Contrast Limited Adaptive Histogram Equalization (best for microscopy)
+    clip_limit : float
+    tile_size : int
+    
+    Returns
+    -------
+    np.ndarray
+        Contrast-enhanced image
+    """
+    img_float = img.astype(np.float32)
+    enhanced = np.empty_like(img_float)
+    
+    for c in range(img.shape[0]):
+        channel = img_float[c, ...]
+        
+        # Normalize to 0-1 for CLAHE
+        c_min, c_max = np.percentile(channel, [0.1, 99.9])
+        if c_max - c_min < 1e-6:
+            enhanced[c, ...] = channel
+            continue
+            
+        channel_norm = np.clip((channel - c_min) / (c_max - c_min), 0, 1)
+        
+        # Convert to uint16 for CLAHE (better precision than uint8)
+        channel_uint = (channel_norm * 65535).astype(np.uint16)
+        
+        # Apply CLAHE
+        clahe = cv2.createCLAHE(clipLimit=clip_limit, 
+                                tileGridSize=(tile_size, tile_size))
+        enhanced_uint = clahe.apply(channel_uint)
+        
+        # Convert back to original scale
+        enhanced_norm = enhanced_uint.astype(np.float32) / 65535.0
+        enhanced[c, ...] = enhanced_norm * (c_max - c_min) + c_min
+            
+    
+    # Final clipping to valid range
+    if np.issubdtype(img.dtype, np.integer):
+        enhanced = np.clip(enhanced, 0, np.iinfo(img.dtype).max)
+    else:
+        enhanced = np.clip(enhanced, 0, None)
+    
+    return enhanced.astype(img.dtype)
+
 # FULL PREPROCESSING PIPELINE
 def PreprocessImage(full_img, plot=False):
     """
@@ -449,84 +488,19 @@ def PreprocessImage(full_img, plot=False):
     if full_img.shape[0] != 4:
         full_img = np.moveaxis(full_img, -1, 0)
     
-    # background sub 
-    bg_subbed = BackgroundSubtraction(full_img, plot=plot)
-    
     # flat-field correction
-    ff_corr = FlatFieldCorrection(bg_subbed, plot=plot)
+    corr_img = FlatFieldCorrection(full_img, plot=plot)
+    
+    # contrast boost
+    corr_img = CLAHEContrastAdjustment(corr_img)
+    
+    # gaussian blur
+    corr_img = GaussianBlur(corr_img)
     
     # norm zscore and scale
-    zsc_norm = ZScoreNorm(ff_corr)
-    norm_img = NormalizeImageChannels(zsc_norm)
+    corr_img = ZScoreNorm(corr_img)
     
-    return norm_img
-
-def OldFlatFieldCorrection(img, sigma_xy = 200,
-                       clip_percent: float = 1.0, plot = False) -> np.ndarray:
-    """
-    Applies flat-field (illumination) correction to a multi-channel image.
-    OLD VERSION - odd results with the image stack, field is not smooth
-
-    Parameters
-    ----------
-    img : np.ndarray
-        Input image of shape (H, W, C), where C is the number of channels.
-    sigma_xy : float, optional
-        Gaussian smoothing sigma (in pixels) to estimate illumination field.
-    clip_percent : float, optional
-        Percentile used to clamp the illumination field to remove extremes.
-
-    Returns
-    -------
-    np.ndarray
-        Flat-field corrected image of same shape (H, W, C), dtype float32.
-    """
-    
-    corrected = np.empty_like(img)
-    eps = 1e-7 # avoid dividing by 0
-
-    for c in range(img.shape[0]):
-        channel = img[c, ...]
-        
-        # SKIP EMPTY CHANNELS OR LOW-CONTRAST
-        # Check if channel has meaningful signal (not just noise)
-        channel_range = np.percentile(channel, 99) - np.percentile(channel, 1)
-        channel_mean = np.mean(channel)
-        
-        # If the signal is very weak relative to mean (likely empty/noise), skip correction
-        if channel_range < channel_mean or channel_range < 1:
-            corrected[c, ...] = channel
-            if plot:
-                print(f"Channel {c}: Skipped (range={channel_range:.2f}, mean={channel_mean:.2f})")
-            continue
-
-        # estimate smooth illumination field and pad to reduce edge fall-off
-        pad = sigma_xy
-        padded = np.pad(channel, pad_width=pad, mode='reflect')
-        field = gaussian_filter(padded, sigma=sigma_xy, mode='reflect')
-        field = field[pad:-pad, pad:-pad]
-        
-        median = np.median(field)
-        mad = np.median(np.abs(field - median))
-        field = np.clip(field, median - 3*mad, median + 3*mad)
-        field_mean = np.mean(field)
-        
-        # Now: center ≈ 1.0, dark edges < 1.0
-        field_norm = field / (field_mean + eps)
-        
-        # Divide: center stays same, edges get brightened
-        corrected_channel = channel / np.maximum(field_norm, eps)
-        corrected_channel = np.clip(corrected_channel, 0, 255)
-        
-        # fix scaling
-        corrected[c, ...] = np.clip(corrected_channel, 0, np.iinfo(img.dtype).max if np.issubdtype(img.dtype, np.integer) else None)
-        
-        # DEBUGGING PRINT - Visualize the field, pre and post correction
-        if plot:
-            plot_flat_field_correction(channel, field_norm, corrected_channel)
-
-    return corrected
-
+    return NormalizeImageChannels(corr_img)
 
 ##########################################
 # Debug Prints

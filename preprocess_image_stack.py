@@ -8,6 +8,8 @@ import time
 # to use for training the UNET model
 ##########################################
 
+# TODO: add function to split stacks out of nd2 images
+
 ##################################################
 # split single stack into multiple images
 z_stck_path = "images"
