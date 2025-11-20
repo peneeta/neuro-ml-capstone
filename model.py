@@ -14,9 +14,6 @@ import pywt
 # functions
 ##########################################
 
-# https://github.com/nabsabraham/focal-tversky-unet/blob/master/losses.py
-# incorporate these loss funcs
-
 class DWT(nn.Module):
     """Discrete Wavelet Transform - replaces MaxPool for better detail preservation"""
     def __init__(self, wavelet='haar'):
@@ -187,21 +184,44 @@ class NeuroUNET(nn.Module):
         x = self.out(x)
         return x
 
-def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-3, device='cuda'):
+def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-3, device='cuda', scheduler_type='plateau'):
     """
-    Train the UNET model
+    Train the UNET model with learning rate scheduling
     
     Args:
         model: UNET model instance
         train_loader: DataLoader for training data
         val_loader: DataLoader for validation data
         num_epochs: Number of training epochs
-        lr: Learning rate
+        lr: Initial learning rate
         device: Device to train on ('cuda' or 'cpu')
+        scheduler_type: Type of scheduler ('plateau', 'step', 'cosine')
     """
     
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
+    
+    # Initialize scheduler based on type
+    if scheduler_type == 'plateau':
+        
+        # Reduces LR when validation loss plateaus
+        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
+            optimizer, mode='min', factor=0.5, patience=3
+        )
+        
+    elif scheduler_type == 'step':
+        # Reduces LR every step_size epochs
+        scheduler = optim.lr_scheduler.StepLR(
+            optimizer, step_size=5, gamma=0.5
+        )
+    elif scheduler_type == 'cosine':
+        # Cosine annealing scheduler
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=num_epochs, eta_min=1e-6
+        )
+    else:
+        scheduler = None
+    
     best_val_loss = float('inf')
     
     # add wandb for plotting
@@ -209,10 +229,9 @@ def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-3, device='
         project="NeuroUNET Testing",
         config={
             "model_name": "NeuroUNET",
-            "learning_rate": 1e-3,
-            "scheduler_step_size": 3,
-            "scheduler_gamma": 0.1,
-            "epochs": 10,
+            "learning_rate": lr,
+            "scheduler_type": scheduler_type,
+            "epochs": num_epochs,
             "loss_function": "MSE",
         }
     )
@@ -276,16 +295,28 @@ def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-3, device='
             
             avg_val_loss = val_loss / len(val_loader)
             
+            # Step the scheduler
+            if scheduler:
+                if scheduler_type == 'plateau':
+                    scheduler.step(avg_val_loss)
+                else:
+                    scheduler.step()
+            
+            # Get current learning rate
+            current_lr = optimizer.param_groups[0]['lr']
+            
             wandb.log({
                     "val/loss": avg_val_loss,
-                    "learning_rate": optimizer.param_groups[0]['lr'],
+                    "train/epoch_loss": avg_train_loss,
+                    "learning_rate": current_lr,
                     "epoch": epoch
             })
             
             # print summary
             print(f'Epoch [{epoch+1}/{num_epochs}], '
                 f'Train Loss: {avg_train_loss:.4f}, '
-                f'Val Loss: {avg_val_loss:.4f}')
+                f'Val Loss: {avg_val_loss:.4f}, '
+                f'LR: {current_lr:.2e}')
             
             # save best model state dict
             if avg_val_loss < best_val_loss:

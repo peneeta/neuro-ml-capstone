@@ -195,35 +195,6 @@ def PreprocessSplitImages(img_filepath, output_dir = "preprocessed"):
     
     print("\nProcessing complete! Saved images")
 
-def SelectActiveChannel(img):
-    """Select the color channel that is nonzero assuming unstacked (i.e. if using individual stain images like DAPI only or CB only)
-    Not included in the pipeline since stacked img has 4 channels combined already
-
-    Args:
-        img (np.ndarray): 
-
-    Returns:
-        img: nonzero 2D image channel
-    """
-    # set type here
-    img = img.astype(np.float32, copy=False)
-    
-    # if only 2 dims, return as-is
-    if img.ndim == 2:
-        return img, 0
-    
-    # move channels to first dim (C, H, W)
-    if img.shape[0] not in (1, 2, 3, 4):
-        img = np.moveaxis(img, -1, 0)
-    
-    
-    print(img.shape)
-
-    # return the first non-empty channel
-    for i, ch in enumerate(img):
-        if not np.all(ch == 0):
-            return ch.reshape(1, img.shape[1], img.shape[2]), i
-
 def NormalizeImageChannels(img):
     """Scales pixel values between 0 and 1
     """
@@ -388,37 +359,6 @@ def FlatFieldCorrection(img, sigma_xy=200,
 
     return corrected
         
-def TileImages(img, tile_size=768):
-    """Tile one image into smaller images. Values to try: 384, 576, 768, 1152
-    Img files are 2304 x 2304
-
-    Args:
-        img (numpy array): 2304x2304 tissue image
-        tile_size (int, optional): Size of image. Defaults to 768.
-    """
-    
-    n, h, w = img.shape
-    tiled_imgs = []
-    
-    # if tile size not divisible, print this
-    if h % tile_size != 0 or w % tile_size != 0:
-        print(f"Warning: Image size ({h}, {w}) not divisible by {tile_size}. "
-              f"Last tiles will include remaining pixels.")
-
-    # iterate with step = tile_size
-    y_starts = list(range(0, h, tile_size))
-    x_starts = list(range(0, w, tile_size))
-
-    for y in y_starts:
-        y_end = min(y + tile_size, h)
-        
-        for x in x_starts:
-            x_end = min(x + tile_size, w)
-            tile = img[:, x:x_end, y:y_end]
-            tiled_imgs.append(tile)
-
-    return tiled_imgs
-
 def CLAHEContrastAdjustment(img, clip_limit = 2.0, tile_size = 4):
     """
     Enhances contrast of a multi-channel image after flat-field correction.
