@@ -24,9 +24,9 @@ print(f"Preprocessing took {elapsed_time:.6f} seconds.")
 
 
 ##################################################
-# tile the images further
-img_dir = "./images/preprocessed"
-output_dir = "./images/subdivided"
+# # tile the images further
+# img_dir = "./images/preprocessed"
+# output_dir = "./images/subdivided"
 
-SplitSingleImages(img_dir, output_dir)
+# SplitSingleImages(img_dir, output_dir)
 
