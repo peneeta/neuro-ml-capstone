@@ -8,13 +8,6 @@ import time
 # to use for training the UNET model
 ##########################################
 
-# TODO: add function to split stacks out of nd2 images
-
-##################################################
-# split single stack into multiple images
-z_stck_path = "images"
-output_dir = "processed_zstack"
-SplitZImageStack(z_stck_path, output_dir)
 
 ##################################################
 # preprocess the images
@@ -27,6 +20,7 @@ PreprocessSplitImages(input_path, output_path)
 end_time = time.time()
 elapsed_time = end_time - start_time
 print(f"Preprocessing took {elapsed_time:.6f} seconds.")
+
 
 ##################################################
 # tile the images further

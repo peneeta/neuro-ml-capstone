@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.ndimage import gaussian_filter
+from cv2_rolling_ball import subtract_background_rolling_ball
 import matplotlib.pyplot as plt
 from pathlib import Path
 import nd2
@@ -195,29 +196,8 @@ def PreprocessSplitImages(img_filepath, output_dir = "preprocessed"):
     
     print("\nProcessing complete! Saved images")
 
-def NormalizeImageChannels(img):
-    """Scales pixel values between 0 and 1
-    """
-    
-    corrected = np.empty_like(img)
-    
-    # iter over channels
-    for c in range(img.shape[0]):
-        
-        channel = img[c, ...]
-    
-        # scale all pixel values to floats between 0 and 1
-        c_min = channel.min()
-        c_max = channel.max()
-        
-        c_norm = (channel - c_min) / (c_max - c_min + 1e-8)
-        
-        corrected[c, ...] = c_norm
-    
-    return corrected
-
 def GaussianBlur(img):
-    # Apply a 1px gaussian blur over the input image
+
     blurred_image = np.zeros_like(img)
     
     for c in range(4):
@@ -250,44 +230,6 @@ def ZScoreNorm(img):
     
     return corrected
     
-def BackgroundSubtraction(img, low_perc = 1.0, plot=False):
-    """ (Method from Zhao Lab)
-
-    Args:
-        img (numpy arr): Subtracts background per channel with percentile method
-        low_perc (float, optional): Percentile (0–100) used to estimate background per channel. Typical values: 0.5–2.0 for dense tissue. Defaults to 0.5.
-
-    Returns:
-        numpy arr: background-subtracted image (bg is removed PER channel)
-    """
-    
-    # empty out arr
-    out = np.empty_like(img)
-    
-    bg_images = []
-
-    # with channels as last dim
-    for c in range(img.shape[0]):
-        channel = img[c, ...]
-        
-        # find the background for this channel
-        bg = np.percentile(channel, low_perc)
-
-        # for debugging
-        bg_images.append(bg)
-
-        # subtract the background from this channel
-        corrected = channel - bg
-        corrected[corrected < 0] = 0.0
-        out[c, ...] = corrected
-    
-        # Plot if requested
-    if plot:
-        plot_background_subtraction(img, bg_images, out)
-
-    # return bg-subbed image
-    return out
-
 def FlatFieldCorrection(img, sigma_xy=200,
                        clip_percent: float = 0.5,
                        correction_strength: float = 0.5,
@@ -359,7 +301,7 @@ def FlatFieldCorrection(img, sigma_xy=200,
 
     return corrected
         
-def CLAHEContrastAdjustment(img, clip_limit = 2.0, tile_size = 4):
+def CLAHEContrastAdjustment(img, clip_limit = 2.0, tile_size = 8):
     """
     Enhances contrast of a multi-channel image after flat-field correction.
     
@@ -367,8 +309,6 @@ def CLAHEContrastAdjustment(img, clip_limit = 2.0, tile_size = 4):
     ----------
     img : np.ndarray
         Input image of shape (C, H, W)
-    method : str
-        'clahe' - Contrast Limited Adaptive Histogram Equalization (best for microscopy)
     clip_limit : float
     tile_size : int
     
@@ -377,11 +317,10 @@ def CLAHEContrastAdjustment(img, clip_limit = 2.0, tile_size = 4):
     np.ndarray
         Contrast-enhanced image
     """
-    img_float = img.astype(np.float32)
-    enhanced = np.empty_like(img_float)
+    enhanced = np.empty_like(img)
     
     for c in range(img.shape[0]):
-        channel = img_float[c, ...]
+        channel = img[c, ...]
         
         # Normalize to 0-1 for CLAHE
         c_min, c_max = np.percentile(channel, [0.1, 99.9])
@@ -412,6 +351,160 @@ def CLAHEContrastAdjustment(img, clip_limit = 2.0, tile_size = 4):
     
     return enhanced.astype(img.dtype)
 
+def ColumnBackgroundSub(image, smooth_sigma=0):
+    """
+    Remove vertical stripe artifacts by subtracting column-wise background.
+    Processes each channel independently.
+    
+    Parameters:
+    -----------
+    image : numpy.ndarray
+        4D input image with shape (C, H, W) where:
+        - C = number of channels
+        - H = height
+        - W = width
+    smooth_sigma : float
+        Gaussian smoothing applied to column profiles before subtraction.
+        Higher values (e.g., 5-10) create smoother corrections.
+        Use 0 for no smoothing.
+    
+    Returns:
+    --------
+    numpy.ndarray
+        Corrected image with shape (C, H, W) with vertical stripes removed
+
+    """
+    
+    img_float = image.astype(np.float32)
+    n_channels = image.shape[0]
+    
+    # Process each channel independently
+    corrected = np.zeros_like(img_float)
+    
+    for c in range(n_channels):
+        channel = img_float[c, :, :]
+        
+        # Compute column-wise median background
+        col_background = np.median(channel, axis=0)
+        
+        # Optional: smooth the column background profile
+        if smooth_sigma > 0:
+            col_background = gaussian_filter(col_background, sigma=smooth_sigma)
+        
+        # Subtract column background from each column
+        corrected[c, :, :] = channel - col_background[np.newaxis, :]
+        
+        # Shift to non-negative to preserve intensity relationships
+        # for downstream processing that expects non-negative values
+        min_val = corrected[c, :, :].min()
+        if min_val < 0:
+            corrected[c, :, :] = corrected[c, :, :] - min_val
+    
+    return corrected
+
+def BilateralDenoise(image, d=9, sigma_color=75, sigma_space=75):
+    """
+    Apply bilateral filtering to a multi-channel image.
+    
+    Parameters:
+    -----------
+    image : numpy.ndarray
+        Input image with shape (C, H, W) where C is number of channels
+    d : int, optional (default=5)
+        Diameter of each pixel neighborhood used during filtering.
+        Large values (>5) are slow. For real-time applications, use d=5.
+        For offline processing with better quality, use d=9.
+    sigma_color : float, optional (default=75)
+        Filter sigma in the color space. Larger value means colors farther apart
+        will be mixed together, resulting in larger areas of semi-equal color.
+        Typical range: 10-150 for 8-bit images, scale proportionally for float images.
+    sigma_space : float, optional (default=75)
+        Filter sigma in the coordinate space. Larger value means pixels farther away
+        will influence each other as long as their colors are similar.
+        Typical range: 10-150
+    
+    Returns:
+    --------
+    filtered_image : numpy.ndarray
+        Filtered image with same shape as input (C, H, W)
+    
+    Notes:
+    ------
+    - Each channel is filtered independently to preserve channel-specific features
+    - For fluorescence microscopy, you may want to tune sigma_color based on your
+      SNR and typical intensity ranges per channel
+    - If your image is normalized to [0,1], scale sigma_color accordingly (e.g., 0.1-0.3)
+    """
+    # Validate input shape
+    if image.ndim != 3:
+        raise ValueError(f"Expected 3D image (C, H, W), got shape {image.shape}")
+    
+    n_channels, _, _ = image.shape
+    
+    # Initialize output array
+    process_image = image.astype(np.float32)
+    filtered_image = np.zeros_like(process_image)
+    
+    # Apply bilateral filter to each channel independently
+    for c in range(n_channels):
+        
+        # Extract single channel (H, W)
+        channel = process_image[c]
+        
+        # Apply bilateral filter
+        filtered_channel = cv2.bilateralFilter(
+            channel, 
+            d=d, 
+            sigmaColor=sigma_color, 
+            sigmaSpace=sigma_space
+        )
+        
+        filtered_image[c] = filtered_channel
+    
+    return filtered_image
+
+def MultiRollingBallBGSub(image):
+    """
+    Perform rolling ball background subtraction on each channel.
+    
+    Parameters
+    ----------
+    image : ndarray of shape (4, H, W)
+        Input 4-channel image
+    
+    Returns
+    -------
+    corrected : ndarray of shape (4, H, W)
+        Background-subtracted image for each channel
+    background : ndarray of shape (4, H, W)
+        Estimated background for each channel
+    """
+    n_channels = image.shape[0]
+    corrected = np.zeros_like(image)
+    background = np.zeros_like(image)
+    
+    for i in range(n_channels):
+        print("Processing channel", i)
+        
+        # Convert to uint8
+        channel = image[i]
+        if channel.dtype in [np.float32, np.float64]:
+            if channel.max() <= 1.0:
+                channel = (channel * 255).astype(np.uint8)
+            else:
+                channel = channel.astype(np.uint8)
+        elif channel.dtype != np.uint8:
+            channel = channel.astype(np.uint8)
+        
+        # This function returns TWO values: (corrected_image, background)
+        corrected[i], background[i] = subtract_background_rolling_ball(
+            channel, 
+            radius=50, 
+            light_background=False
+        )
+    
+    return corrected, background
+
 # FULL PREPROCESSING PIPELINE
 def PreprocessImage(full_img, plot=False):
     """
@@ -428,19 +521,28 @@ def PreprocessImage(full_img, plot=False):
     if full_img.shape[0] != 4:
         full_img = np.moveaxis(full_img, -1, 0)
     
-    # flat-field correction
-    corr_img = FlatFieldCorrection(full_img, plot=plot)
+    # rm column artifacts, fn converts to np.float32
+    # note - shifts to nonnegative values for ffcorr
+    corr_img = ColumnBackgroundSub(full_img)
     
-    # contrast boost
+    # flat-field correction, fn converts to np.float32
+    corr_img = FlatFieldCorrection(corr_img, plot=plot)
+    
+    # bilateral denoise, fn converts to np.float32
+    corr_img = BilateralDenoise(corr_img)
+    
+    # subtract bg, fn converts to uint8
+    corr_img, _ = MultiRollingBallBGSub(corr_img)
+   
+    # contrast boost, uint16
     corr_img = CLAHEContrastAdjustment(corr_img)
     
     # gaussian blur
     corr_img = GaussianBlur(corr_img)
     
-    # norm zscore and scale
-    corr_img = ZScoreNorm(corr_img)
-    
-    return NormalizeImageChannels(corr_img)
+    # norm zscore
+    return  ZScoreNorm(corr_img)
+
 
 ##########################################
 # Debug Prints
