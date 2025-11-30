@@ -13,8 +13,9 @@ import time
 # preprocess the images
 start_time = time.time()
 
-output_path = "images/preprocessed"
-input_path = "images/processed_zstack"
+# A1
+output_path = "~/em_capstone_f25/images/A1_preprocessed"
+input_path = "~/em_capstone_f25/images/A1"
 PreprocessSplitImages(input_path, output_path)
 
 end_time = time.time()
