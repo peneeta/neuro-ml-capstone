@@ -1,5 +1,6 @@
-from image_preprocessing import SplitZImageStack, PreprocessSplitImages, SplitSingleImages
+from image_preprocessing import PreprocessSplitImages
 import time
+from pathlib import Path
 
 ##########################################
 # NeuroML Capstone Project
@@ -13,9 +14,11 @@ import time
 # preprocess the images
 start_time = time.time()
 
+home = Path.home()
+
 # A1
-output_path = "~/em_capstone_f25/images/A1_preprocessed"
-input_path = "~/em_capstone_f25/images/A1"
+output_path = home / "em_capstone_f25"/ "Images"/ "A1_preprocessed"
+input_path = home / "em_capstone_f25" / "Images" / "A1"
 PreprocessSplitImages(input_path, output_path)
 
 end_time = time.time()

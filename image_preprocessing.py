@@ -7,6 +7,7 @@ import nd2
 import tifffile
 import os
 import cv2
+import time
 
 ##########################################
 # NeuroML Capstone Project
@@ -180,6 +181,8 @@ def PreprocessSplitImages(img_filepath, output_dir = "preprocessed"):
     for im in tif_files:
         print(f"\nProcessing: {im.name}")
         
+        start_time = time.time()
+        
         # Open file - tifffile handles multi-channel images
         curr_im = tifffile.imread(im)
         
@@ -191,8 +194,12 @@ def PreprocessSplitImages(img_filepath, output_dir = "preprocessed"):
         # Save to file with prefix _pr.tif within the output_dir
         output_filename = im.stem + "_pr.tif"
         output_path = output_dir / output_filename
-        tifffile.imwrite(output_path, processed)
+        tifffile.imwrite(output_path, processed, compression="deflate")
         print(f"Saved: {output_filename}")
+        
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+        print("took ", elapsed_time, " seconds")
     
     print("\nProcessing complete! Saved images")
 
@@ -516,6 +523,7 @@ def PreprocessImage(full_img, plot=False):
     Returns:
         preprocessed img
     """
+    
     
     # verify that channels are first dim
     if full_img.shape[0] != 4:
