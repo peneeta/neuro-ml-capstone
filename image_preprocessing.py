@@ -1,4 +1,5 @@
 import numpy as np
+from typing import Tuple
 from scipy.ndimage import gaussian_filter
 from cv2_rolling_ball import subtract_background_rolling_ball
 import matplotlib.pyplot as plt
@@ -94,8 +95,8 @@ def SplitZImageStack(img_filepath, output_dir = "processed_zstack"):
 def SplitSingleImages(img_dir, output_dir, tile_size=576):
     
     """
-    Tile one image into smaller images. Values to try: 384, 576, 768, 1152
-    Img files are 2304 x 2304
+    Tile one image into smaller images.
+    Img files are 2189 x 2189
     """
     
     # select all image files from img_filepath
@@ -551,6 +552,202 @@ def PreprocessImage(full_img, plot=False):
     # norm zscore
     return  ZScoreNorm(corr_img)
 
+#### 
+# Selecting patch informativeness
+####
+
+def CheckPatchInfo(
+    tile: np.ndarray,
+    nucleus_channel: int = 0,
+    tissue_channel: int = 3,
+    receptor_channels: Tuple[int, int] = (1, 2),
+    tissue_threshold: float = 0.05,
+    nucleus_threshold: float = 0.02,
+    receptor_threshold: float = 0.01,
+    min_variance: float = 100.0
+):
+    """
+    Determine if a tile contains informative content based on multiple criteria.
+    
+    Parameters:
+    -----------
+    tile : np.ndarray
+        4-channel image tile (C, H, W)
+    nucleus_channel : int
+        Index of nucleus stain channel
+    tissue_channel : int
+        Index of tissue stain channel
+    receptor_channels : tuple
+        Indices of receptor stain channels
+    tissue_threshold : float
+        Minimum fraction of pixels above background in tissue channel
+    nucleus_threshold : float
+        Minimum fraction of pixels above background in nucleus channel
+    receptor_threshold : float
+        Minimum fraction of pixels above background in at least one receptor channel
+    min_variance : float
+        Minimum variance in tissue channel (avoids blank/uniform regions)
+    
+    Returns:
+    --------
+    is_informative : bool
+        Whether the patch meets informativeness criteria
+    metrics : dict
+        Dictionary of computed metrics for logging/analysis
+    """
+    
+    metrics = {}
+    
+    # Extract channels
+    nucleus = tile[nucleus_channel]
+    tissue = tile[tissue_channel]
+    stain1 = tile[receptor_channels[0]]
+    stain2 = tile[receptor_channels[1]]
+    
+    # Compute background thresholds (e.g., using Otsu-like approach or percentile)
+    tissue_bg = np.percentile(tissue, 25)
+    nucleus_bg = np.percentile(nucleus, 25)
+    stain1_bg = np.percentile(stain1, 25)
+    stain2_bg = np.percentile(stain2, 25)
+    
+    # Calculate fraction of pixels above background
+    tissue_content = np.mean(tissue > tissue_bg * 1.5)
+    nucleus_content = np.mean(nucleus > nucleus_bg * 1.5)
+    stain1_content = np.mean(stain1 > stain1_bg * 1.5)
+    stain2_content = np.mean(stain2 > stain2_bg * 1.5)
+    
+    # Calculate variance to avoid blank/uniform regions
+    tissue_var = np.var(tissue)
+    
+    # Store metrics
+    metrics['tissue_content'] = tissue_content
+    metrics['nucleus_content'] = nucleus_content
+    metrics['stain1_content'] = stain1_content
+    metrics['stain2_content'] = stain2_content
+    metrics['tissue_variance'] = tissue_var
+    
+    # Criteria for informativeness
+    has_tissue = tissue_content > tissue_threshold
+    has_nuclei = nucleus_content > nucleus_threshold
+    has_receptors = (stain1_content > receptor_threshold or 
+                     stain2_content > receptor_threshold)
+    has_variation = tissue_var > min_variance
+    
+    # A patch is informative if it has tissue AND nuclei AND (receptors OR good variation)
+    is_informative = has_tissue and has_nuclei and (has_receptors or has_variation)
+    
+    return is_informative, metrics
+
+def SplitInformativePatches(
+    img_dir: str,
+    output_dir: str,
+    tile_size: int = 576,
+    nucleus_channel: int = 0,
+    tissue_channel: int = 3,
+    receptor_channels: Tuple[int, int] = (1, 2),
+    tissue_threshold: float = 0.05,
+    nucleus_threshold: float = 0.02,
+    receptor_threshold: float = 0.01,
+    min_variance: float = 100.0
+):
+    """
+    Tile images into smaller patches and filter for informative content.
+    
+    Parameters:
+    -----------
+    img_dir : str
+        Directory containing input .tif images
+    output_dir : str
+        Directory to save filtered tiles
+    tile_size : int
+        Size of square tiles (default 576)
+    nucleus_channel : int
+        Index of nucleus stain channel (default 0)
+    tissue_channel : int
+        Index of tissue stain channel (default 3)
+    receptor_channels : tuple
+        Indices of receptor stain channels (default (1, 2))
+    tissue_threshold : float
+        Minimum tissue content (default 0.05 = 5% of pixels)
+    nucleus_threshold : float
+        Minimum nucleus content (default 0.02 = 2% of pixels)
+    receptor_threshold : float
+        Minimum receptor content (default 0.01 = 1% of pixels)
+    min_variance : float
+        Minimum variance in tissue channel (default 100.0)
+    """
+    
+    os.makedirs(output_dir, exist_ok=True)
+    img_dir = Path(img_dir)
+    img_files = list(img_dir.glob("*.tif"))
+    
+    if not img_files:
+        print(f"No .tif files found in {img_dir}")
+        return
+    
+    total_tiles = 0
+    total_informative = 0
+    
+    for img_filepath in img_files:
+        print(f"\nPROCESSING {img_filepath.name}")
+        img = tifffile.imread(img_filepath)
+        
+        if len(img.shape) != 3 or img.shape[0] != 4:
+            print(f"Skipping - unexpected shape: {img.shape}")
+            continue
+        
+        print(f"IMAGE SHAPE: {img.shape}")
+        _, height, width = img.shape
+        
+        base_name = os.path.splitext(os.path.basename(img_filepath))[0]
+        
+        tiles_x = width // tile_size
+        tiles_y = height // tile_size
+        
+        tile_number = 0
+        informative_count = 0
+        
+        # Tile the image
+        for y in range(tiles_y):
+            for x in range(tiles_x):
+                top = y * tile_size
+                left = x * tile_size
+                bottom = top + tile_size
+                right = left + tile_size
+                
+                tile = img[:, top:bottom, left:right]
+                
+                # Check if tile is informative
+                is_info, metrics = CheckPatchInfo(
+                    tile,
+                    nucleus_channel=nucleus_channel,
+                    tissue_channel=tissue_channel,
+                    receptor_channels=receptor_channels,
+                    tissue_threshold=tissue_threshold,
+                    nucleus_threshold=nucleus_threshold,
+                    receptor_threshold=receptor_threshold,
+                    min_variance=min_variance
+                )
+                
+                # Only save informative tiles
+                if is_info:
+                    output_filename = f"{base_name}_tile_{tile_number}.tif"
+                    output_path = os.path.join(output_dir, output_filename)
+                    tifffile.imwrite(output_path, tile)
+                    informative_count += 1
+                
+                tile_number += 1
+        
+        print(f"Image: {informative_count}/{tile_number} tiles kept "
+              f"({100*informative_count/tile_number:.1f}%)")
+        
+        total_tiles += tile_number
+        total_informative += informative_count
+    
+    print(f"\n{'='*60}")
+    print(f"FINISHED: {total_informative}/{total_tiles} informative tiles "
+          f"({100*total_informative/total_tiles:.1f}%)")
+    print(f"{'='*60}")
 
 ##########################################
 # Debug Prints

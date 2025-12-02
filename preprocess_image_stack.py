@@ -1,4 +1,4 @@
-from image_preprocessing import PreprocessSplitImages, SplitSingleImages
+from image_preprocessing import PreprocessSplitImages, SplitInformativePatches
 import time
 from pathlib import Path
 
@@ -36,7 +36,15 @@ output_dir = home / "em_capstone_f25" / "Images" / "A1_tiled"
 print("Splitting Images")
 start_time = time.time()
 
-SplitSingleImages(img_dir, output_dir)
+SplitInformativePatches(
+        img_dir,
+        output_dir,
+        tile_size=576,
+        tissue_threshold=0.5,
+        nucleus_threshold=0.9, # looks like this is the best to include nuclei
+        receptor_threshold=0.01,
+        min_variance=100.0
+)
 
 end_time = time.time()
 elapsed_time = end_time - start_time

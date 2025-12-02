@@ -5,8 +5,5 @@
 # python cache
 __pycache__
 
-# data - too large
-images/60x_z001.nd2
-images/processed_zstack
-images/preprocessed
-images/subdivided
+# prepr. img too beefy
+images/test_images/A1_FOV01_Z100_proc.tif
