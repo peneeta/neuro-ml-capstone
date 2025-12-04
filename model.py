@@ -3,7 +3,9 @@ import torch.nn as nn
 import torch.optim as optim
 from tqdm import tqdm
 import numpy as np
+import os
 import tifffile
+from pathlib import Path
 import wandb
 import pywt
 
@@ -253,7 +255,7 @@ class NeuroUNET(nn.Module):
         x = self.out(x)
         return x
 
-def TrainModel(model, train_loader, val_loader, dapi_channel = 0, cb_channel = 3, num_epochs=20, lr=1e-3, device='cuda'):
+def TrainModel(model, train_loader, val_loader, checkpoint_dir, dapi_channel = 0, cb_channel = 3, num_epochs=20, lr=1e-3, device='cuda'):
     """
     Train the UNET model with learning rate scheduling
     
@@ -266,6 +268,10 @@ def TrainModel(model, train_loader, val_loader, dapi_channel = 0, cb_channel = 3
         device: Device to train on ('cuda' or 'cpu')
         scheduler_type: Type of scheduler ('plateau', 'step', 'cosine')
     """
+    
+    # init the checkpoint dir
+    checkpoint_dir = Path(checkpoint_dir)
+    os.makedirs(checkpoint_dir, exist_ok=True)
     
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
@@ -373,7 +379,7 @@ def TrainModel(model, train_loader, val_loader, dapi_channel = 0, cb_channel = 3
             # save best model state dict
             if avg_val_loss < best_val_loss:
                 best_val_loss = avg_val_loss
-                torch.save(model.state_dict(), 'best_unet_model.pth')
+                torch.save(model.state_dict(), checkpoint_dir / 'best_unet_model.pth')
                 print(f'saved best state dict for epoch {epoch+1}')
         
     wandb.finish()

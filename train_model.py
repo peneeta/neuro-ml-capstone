@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 # Train model using a single well
 ##########################################
 
-def TrainPerWell(train_img_path, val_img_path):
+def TrainPerWell(train_img_path, val_img_path, checkpoint_dir):
     
     # INIT MODEL
     model = NeuroUNET(in_channels=2, out_channels=2)
@@ -67,5 +67,8 @@ base_training_dir = home / "em_capstone_f25" / "Images" / "A1_tiled"
 train_imgs = base_training_dir / "train"
 val_imgs = base_training_dir / "val"
 
-TrainPerWell(train_imgs, val_imgs)
+# checkpoint
+ckpt_dir = home / "em_capstone_f25" / "checkpoint_A1"
+
+TrainPerWell(train_imgs, val_imgs, checkpoint_dir=ckpt_dir)
 
