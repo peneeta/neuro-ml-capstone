@@ -18,11 +18,16 @@ start_time = time.time()
 # A1
 # output_path = home / "em_capstone_f25"/ "Images"/ "A1_preprocessed"
 # input_path = home / "em_capstone_f25" / "Images" / "A1"
-PreprocessSplitImages(input_path, output_path)
+# PreprocessSplitImages(input_path, output_path)
 
-end_time = time.time()
-elapsed_time = end_time - start_time
-print(f"Preprocessing took {elapsed_time:.6f} seconds.")
+# end_time = time.time()
+# elapsed_time = end_time - start_time
+# print(f"Preprocessing took {elapsed_time:.6f} seconds.")
+
+base_fp = "/run/user/1000/gvfs/smb-share:server=zhao-nas.lan.local.cmu.edu,share=zhao-lab/Magnify Biosciences/capstone/11Nov25_acquire_40x_z_2x2/processed_zstack"
+
+output_base = "/run/user/1000/gvfs/smb-share:server=zhao-nas.lan.local.cmu.edu,share=zhao-lab/Magnify Biosciences/capstone/11Nov25_acquire_40x_z_2x2/"
+
 
 
 ##################################################
