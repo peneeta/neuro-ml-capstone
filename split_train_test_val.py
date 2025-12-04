@@ -79,7 +79,11 @@ def SplitTrainTestVal(image_dir, train_ratio=0.7, val_ratio=0.1, test_ratio=0.2,
 
 #############################################################################
 
-base_fp = Path("/run/user/1000/gvfs/smb-share:server=zhao-nas.lan.local.cmu.edu,share=zhao-lab/Magnify Biosciences/capstone/11Nov25_acquire_40x_z_2x2")
+# base_fp = Path("/run/user/1000/gvfs/smb-share:server=zhao-nas.lan.local.cmu.edu,share=zhao-lab/Magnify Biosciences/capstone/11Nov25_acquire_40x_z_2x2")
+
+home = Path.home()
+base_fp = home / "em_capstone_f25" 
+dir_to_split = base_fp / "Images" / "A1_tiled"
 
 # Test with A1 first
-SplitTrainTestVal(base_fp / "A1_tiled")
+SplitTrainTestVal(dir_to_split)
