@@ -32,8 +32,8 @@ output_base = "/run/user/1000/gvfs/smb-share:server=zhao-nas.lan.local.cmu.edu,s
 
 ##################################################
 # # tile the images further
-img_dir = "./images/preprocessed"
-output_dir = "./images/subdivided"
+# img_dir = "./images/preprocessed"
+# output_dir = "./images/subdivided"
 
 img_dir  = home / "em_capstone_f25"/ "Images"/ "A1_preprocessed"
 output_dir = home / "em_capstone_f25" / "Images" / "A1_tiled"
