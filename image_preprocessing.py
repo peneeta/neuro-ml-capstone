@@ -701,6 +701,12 @@ def SplitInformativePatches(
     
     for img_filepath in img_files:
         print(f"\nPROCESSING {img_filepath.name}")
+        
+        if os.path.exists(img_filepath.name):
+            print(f"File exists: {img_filepath.name}")
+        else:
+            print(f"File does not exist: {img_filepath.name}")
+            
         print(img_filepath)
         img = tifffile.imread(img_filepath)
         
