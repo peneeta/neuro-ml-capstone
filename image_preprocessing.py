@@ -701,7 +701,10 @@ def SplitInformativePatches(
     
     for img_filepath in img_files:
         print(f"\nPROCESSING {img_filepath.name}")
-        img = tifffile.imread(img_filepath, _use_frames=True)
+        
+        # fix for remote file system?
+        with open(img_filepath, 'rb') as f:
+            img = tifffile.imread(f)
         
         if len(img.shape) != 3 or img.shape[0] != 4:
             print(f"Skipping - unexpected shape: {img.shape}")
