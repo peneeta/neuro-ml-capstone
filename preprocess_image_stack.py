@@ -24,19 +24,17 @@ start_time = time.time()
 # elapsed_time = end_time - start_time
 # print(f"Preprocessing took {elapsed_time:.6f} seconds.")
 
-base_fp = "/run/user/1000/gvfs/smb-share:server=zhao-nas.lan.local.cmu.edu,share=zhao-lab/Magnify Biosciences/capstone/11Nov25_acquire_40x_z_2x2/processed_zstack"
+# base_fp = Path("/run/user/1000/gvfs/smb-share:server=zhao-nas.lan.local.cmu.edu,share=zhao-lab/Magnify Biosciences/capstone/11Nov25_acquire_40x_z_2x2")
 
-output_base = "/run/user/1000/gvfs/smb-share:server=zhao-nas.lan.local.cmu.edu,share=zhao-lab/Magnify Biosciences/capstone/11Nov25_acquire_40x_z_2x2/"
-
+# output_base = Path("/run/user/1000/gvfs/smb-share:server=zhao-nas.lan.local.cmu.edu,share=zhao-lab/Magnify Biosciences/capstone/11Nov25_acquire_40x_z_2x2/")
 
 
 ##################################################
-# # tile the images further
-# img_dir = "./images/preprocessed"
-# output_dir = "./images/subdivided"
+# tile the images further
+base_fp = Path("/run/user/1000/gvfs/smb-share:server=zhao-nas.lan.local.cmu.edu,share=zhao-lab/Magnify Biosciences/capstone/11Nov25_acquire_40x_z_2x2")
 
-img_dir  = home / "em_capstone_f25"/ "Images"/ "A1_preprocessed"
-output_dir = home / "em_capstone_f25" / "Images" / "A1_tiled"
+img_dir  = base_fp / "preprocessed" / "A1_preprocessed"
+output_dir = base_fp / "tiled" / "A1_tiled"
 
 print("Splitting Images")
 start_time = time.time()
@@ -46,7 +44,7 @@ SplitInformativePatches(
         output_dir,
         tile_size=576,
         stride = 100,
-        tissue_threshold=0.5,
+        tissue_threshold=0.01,
         nucleus_threshold=0.9, # looks like this is the best to include nuclei
         receptor_threshold=0.01,
         min_variance=100.0

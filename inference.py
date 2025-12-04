@@ -8,8 +8,7 @@ from model import NeuroUNET
 
 
 def TileImages(img, tile_size=256):
-    """Tile one image into smaller images. Values to try: 384, 576, 768, 1152
-    Img files are 2304 x 2304
+    """Tile one image into smaller images.
 
     Args:
         img (numpy array): 2304x2304 tissue image
