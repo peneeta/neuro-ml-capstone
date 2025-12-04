@@ -56,7 +56,7 @@ def TrainPerWell(train_img_path, val_img_path, checkpoint_dir):
     )
     
     # train the model on images (TODO: increase epochs later)
-    model = TrainModel(model, train_loader, val_loader, num_epochs=10, device='cuda')
+    model = TrainModel(model, train_loader, val_loader, checkpoint_dir=checkpoint_dir, num_epochs=10, device='cuda')
     print("Training completed!")
 
 
