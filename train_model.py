@@ -10,6 +10,9 @@ from torch.utils.data import DataLoader
 # Train model using a single well
 ##########################################
 
+# wandb key
+# c910b4614aece494cca185307fe3efe926ffb62c
+
 def TrainPerWell(train_img_path, val_img_path, checkpoint_dir):
     
     # INIT MODEL
