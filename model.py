@@ -107,47 +107,47 @@ class DoubleConv(nn.Module):
     def forward(self, x):
         return self.double_conv(x)
 
-class GlobalContextBranch(nn.Module):
-    """
-    Processes the full 576x576 image to extract global context features.
-    Uses progressive downsampling to create a compact feature vector.
-    """
-    def __init__(self, in_channels=2, feature_dim=256):
-        super().__init__()
+# class GlobalContextBranch(nn.Module):
+#     """
+#     Processes the full 576x576 image to extract global context features.
+#     Uses progressive downsampling to create a compact feature vector.
+#     """
+#     def __init__(self, in_channels=2, feature_dim=256):
+#         super().__init__()
         
-        # Progressive downsampling: 576 -> 288 -> 144 -> 72 -> 36 -> 18 -> 9
-        self.conv1 = nn.Sequential(
-            nn.Conv2d(in_channels, 32, kernel_size=3, stride=2, padding=1),  # 288x288
-            nn.BatchNorm2d(32),
-            nn.ReLU(inplace=True)
-        )
+#         # Progressive downsampling: 576 -> 288 -> 144 -> 72 -> 36 -> 18 -> 9
+#         self.conv1 = nn.Sequential(
+#             nn.Conv2d(in_channels, 32, kernel_size=3, stride=2, padding=1),  # 288x288
+#             nn.BatchNorm2d(32),
+#             nn.ReLU(inplace=True)
+#         )
         
-        self.conv2 = nn.Sequential(
-            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),  # 144x144
-            nn.BatchNorm2d(64),
-            nn.ReLU(inplace=True)
-        )
+#         self.conv2 = nn.Sequential(
+#             nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),  # 144x144
+#             nn.BatchNorm2d(64),
+#             nn.ReLU(inplace=True)
+#         )
         
-        self.conv3 = nn.Sequential(
-            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),  # 72x72
-            nn.BatchNorm2d(128),
-            nn.ReLU(inplace=True)
-        )
+#         self.conv3 = nn.Sequential(
+#             nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),  # 72x72
+#             nn.BatchNorm2d(128),
+#             nn.ReLU(inplace=True)
+#         )
         
-        self.conv4 = nn.Sequential(
-            nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),  # 36x36
-            nn.BatchNorm2d(256),
-            nn.ReLU(inplace=True)
-        )
+#         self.conv4 = nn.Sequential(
+#             nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),  # 36x36
+#             nn.BatchNorm2d(256),
+#             nn.ReLU(inplace=True)
+#         )
         
-        # Global average pooling to get feature vector
-        self.gap = nn.AdaptiveAvgPool2d(1)
+#         # Global average pooling to get feature vector
+#         self.gap = nn.AdaptiveAvgPool2d(1)
         
-        # Project to desired feature dimension
-        self.fc = nn.Sequential(
-            nn.Linear(256, feature_dim),
-            nn.ReLU(inplace=True)
-        )
+#         # Project to desired feature dimension
+#         self.fc = nn.Sequential(
+#             nn.Linear(256, feature_dim),
+#             nn.ReLU(inplace=True)
+#         )
 
 class NeuroUNET(nn.Module):
     """UNET with DWT/IWT for superior detail preservation
@@ -165,7 +165,7 @@ class NeuroUNET(nn.Module):
         self.iwt = IWT(wavelet=wavelet)
         
         # Global context
-        self.global_branch = GlobalContextBranch(in_channels, context_dim)
+        # self.global_branch = GlobalContextBranch(in_channels, context_dim)
         
         # Context injection layers - add global features to decoder
         self.context_proj_bottleneck = nn.Linear(context_dim, 512)
@@ -199,12 +199,12 @@ class NeuroUNET(nn.Module):
         # Final output layer
         self.out = nn.Conv2d(64, out_channels, kernel_size=1)
     
-    def forward(self, x_patch, x_full):
+    def forward(self, x):
         # Full image features with global conteext
-        global_context = self.global_branch(x_full)
+        # global_context = self.global_branch(x_full)
         
         # Encoder with DWT downsampling
-        enc1 = self.enc1(x_patch)
+        enc1 = self.enc1(x)
         x = self.dwt(enc1)
         x = self.adapt1(x)
         
@@ -220,10 +220,10 @@ class NeuroUNET(nn.Module):
         x = self.bottleneck(x)
         
         # Project context and add to bottleneck features
-        context_bottleneck = self.context_proj_bottleneck(global_context)
-        # Reshape and add: (B, 512) -> (B, 512, 1, 1) and broadcast
-        context_bottleneck = context_bottleneck.view(x.size(0), -1, 1, 1)
-        x = x + context_bottleneck
+        # context_bottleneck = self.context_proj_bottleneck(global_context)
+        # # Reshape and add: (B, 512) -> (B, 512, 1, 1) and broadcast
+        # context_bottleneck = context_bottleneck.view(x.size(0), -1, 1, 1)
+        # x = x + context_bottleneck
         
         # Decoder with IWT upsampling
         x = self.expand3(x)
@@ -232,9 +232,9 @@ class NeuroUNET(nn.Module):
         x = self.dec3(x)
     
         # inject global context
-        context_dec3 = self.context_proj_dec3(global_context)
-        context_dec3 = context_dec3.view(x.size(0), -1, 1, 1)
-        x = x + context_dec3
+        # context_dec3 = self.context_proj_dec3(global_context)
+        # context_dec3 = context_dec3.view(x.size(0), -1, 1, 1)
+        # x = x + context_dec3
         
         x = self.expand2(x)
         x = self.iwt(x)
@@ -242,9 +242,9 @@ class NeuroUNET(nn.Module):
         x = self.dec2(x)
         
         # inject global context
-        context_dec2 = self.context_proj_dec2(global_context)
-        context_dec2 = context_dec2.view(x.size(0), -1, 1, 1)
-        x = x + context_dec2
+        # context_dec2 = self.context_proj_dec2(global_context)
+        # context_dec2 = context_dec2.view(x.size(0), -1, 1, 1)
+        # x = x + context_dec2
         
         x = self.expand1(x)
         x = self.iwt(x)
