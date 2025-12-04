@@ -1,0 +1,35 @@
+Epoch 1/10 [Train]:  44%|███████████████████████████▍                                   | 137/314 [10:35<13:41,  4.64s/it, loss=1.18]
+Traceback (most recent call last):
+  File "/home/WS_Tiger/em_capstone_f25/neuro-ml-capstone/train_model.py", line 80, in <module>
+    TrainPerWell(train_imgs, val_imgs, checkpoint_dir=ckpt_dir)
+  File "/home/WS_Tiger/em_capstone_f25/neuro-ml-capstone/train_model.py", line 63, in TrainPerWell
+    model = TrainModel(model, train_loader, val_loader, checkpoint_dir=checkpoint_dir, num_epochs=10, device='cuda')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/em_capstone_f25/neuro-ml-capstone/model.py", line 313, in TrainModel
+    outputs = model(inputs)
+              ^^^^^^^^^^^^^
+  File "/home/WS_Tiger/miniconda3/envs/pyML/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/miniconda3/envs/pyML/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/em_capstone_f25/neuro-ml-capstone/model.py", line 208, in forward
+    x = self.dwt(enc1)
+        ^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/miniconda3/envs/pyML/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/miniconda3/envs/pyML/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/em_capstone_f25/neuro-ml-capstone/model.py", line 38, in forward
+    coeffs = pywt.dwt2(img, self.wavelet)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/miniconda3/envs/pyML/lib/python3.11/site-packages/pywt/_multidim.py", line 71, in dwt2
+    coefs = dwtn(data, wavelet, mode, axes)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/miniconda3/envs/pyML/lib/python3.11/site-packages/pywt/_multidim.py", line 186, in dwtn
+    cA, cD = dwt_axis(x, wav, mode, axis)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

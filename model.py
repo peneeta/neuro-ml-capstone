@@ -273,7 +273,7 @@ def TrainModel(model, train_loader, val_loader, checkpoint_dir, dapi_channel = 0
     checkpoint_dir = Path(checkpoint_dir)
     os.makedirs(checkpoint_dir, exist_ok=True)
     
-    model = model.to(device)
+    model = model.to(torch.device(device))
     optimizer = optim.Adam(model.parameters(), lr=lr)
     
     best_val_loss = float('inf')
