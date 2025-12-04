@@ -642,6 +642,7 @@ def SplitInformativePatches(
     img_dir: str,
     output_dir: str,
     tile_size: int = 576,
+    stride: int = None,
     nucleus_channel: int = 0,
     tissue_channel: int = 3,
     receptor_channels: Tuple[int, int] = (1, 2),
@@ -661,6 +662,9 @@ def SplitInformativePatches(
         Directory to save filtered tiles
     tile_size : int
         Size of square tiles (default 576)
+    stride : int
+        Step size between tiles. If None, defaults to tile_size (no overlap).
+        Use smaller values (e.g., tile_size // 2) for 50% overlap.
     nucleus_channel : int
         Index of nucleus stain channel (default 0)
     tissue_channel : int
@@ -677,6 +681,10 @@ def SplitInformativePatches(
         Minimum variance in tissue channel (default 100.0)
     """
     
+    # Default stride to tile_size if not specified (no overlap)
+    if stride is None:
+        stride = tile_size
+    
     os.makedirs(output_dir, exist_ok=True)
     img_dir = Path(img_dir)
     img_files = list(img_dir.glob("*.tif"))
@@ -687,6 +695,9 @@ def SplitInformativePatches(
     
     total_tiles = 0
     total_informative = 0
+    
+    overlap_pct = (1 - stride / tile_size) * 100 if stride < tile_size else 0
+    print(f"Using tile_size={tile_size}, stride={stride} ({overlap_pct:.1f}% overlap)")
     
     for img_filepath in img_files:
         print(f"\nPROCESSING {img_filepath.name}")
@@ -701,17 +712,16 @@ def SplitInformativePatches(
         
         base_name = os.path.splitext(os.path.basename(img_filepath))[0]
         
-        tiles_x = width // tile_size
-        tiles_y = height // tile_size
-        
         tile_number = 0
         informative_count = 0
         
-        # Tile the image
-        for y in range(tiles_y):
-            for x in range(tiles_x):
-                top = y * tile_size
-                left = x * tile_size
+        # Calculate number of tiles with stride
+        y_positions = list(range(0, height - tile_size + 1, stride))
+        x_positions = list(range(0, width - tile_size + 1, stride))
+        
+        # Tile the image with stride
+        for y_idx, top in enumerate(y_positions):
+            for x_idx, left in enumerate(x_positions):
                 bottom = top + tile_size
                 right = left + tile_size
                 
@@ -731,7 +741,7 @@ def SplitInformativePatches(
                 
                 # Only save informative tiles
                 if is_info:
-                    output_filename = f"{base_name}_tile_{tile_number}.tif"
+                    output_filename = f"{base_name}_tile_y{y_idx}_x{x_idx}.tif"
                     output_path = os.path.join(output_dir, output_filename)
                     tifffile.imwrite(output_path, tile)
                     informative_count += 1
@@ -748,7 +758,6 @@ def SplitInformativePatches(
     print(f"FINISHED: {total_informative}/{total_tiles} informative tiles "
           f"({100*total_informative/total_tiles:.1f}%)")
     print(f"{'='*60}")
-
 ##########################################
 # Debug Prints
 ##########################################

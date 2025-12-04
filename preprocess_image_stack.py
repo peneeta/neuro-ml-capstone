@@ -40,6 +40,7 @@ SplitInformativePatches(
         img_dir,
         output_dir,
         tile_size=576,
+        stride = 100,
         tissue_threshold=0.5,
         nucleus_threshold=0.9, # looks like this is the best to include nuclei
         receptor_threshold=0.01,

@@ -105,6 +105,48 @@ class DoubleConv(nn.Module):
     def forward(self, x):
         return self.double_conv(x)
 
+class GlobalContextBranch(nn.Module):
+    """
+    Processes the full 576x576 image to extract global context features.
+    Uses progressive downsampling to create a compact feature vector.
+    """
+    def __init__(self, in_channels=2, feature_dim=256):
+        super().__init__()
+        
+        # Progressive downsampling: 576 -> 288 -> 144 -> 72 -> 36 -> 18 -> 9
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(in_channels, 32, kernel_size=3, stride=2, padding=1),  # 288x288
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True)
+        )
+        
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),  # 144x144
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True)
+        )
+        
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),  # 72x72
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True)
+        )
+        
+        self.conv4 = nn.Sequential(
+            nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),  # 36x36
+            nn.BatchNorm2d(256),
+            nn.ReLU(inplace=True)
+        )
+        
+        # Global average pooling to get feature vector
+        self.gap = nn.AdaptiveAvgPool2d(1)
+        
+        # Project to desired feature dimension
+        self.fc = nn.Sequential(
+            nn.Linear(256, feature_dim),
+            nn.ReLU(inplace=True)
+        )
+
 class NeuroUNET(nn.Module):
     """UNET with DWT/IWT for superior detail preservation
     
@@ -113,12 +155,20 @@ class NeuroUNET(nn.Module):
     - IWT replaces ConvTranspose: perfect reconstruction
     - Channel adaptation layers handle 4x channel expansion from DWT
     """
-    def __init__(self, in_channels=2, out_channels=2, wavelet='haar'):
+    def __init__(self, in_channels=2, out_channels=2, wavelet='haar', context_dim=256):
         super().__init__()
         
         # DWT/IWT transforms
         self.dwt = DWT(wavelet=wavelet)
         self.iwt = IWT(wavelet=wavelet)
+        
+        # Global context
+        self.global_branch = GlobalContextBranch(in_channels, context_dim)
+        
+        # Context injection layers - add global features to decoder
+        self.context_proj_bottleneck = nn.Linear(context_dim, 512)
+        self.context_proj_dec3 = nn.Linear(context_dim, 256)
+        self.context_proj_dec2 = nn.Linear(context_dim, 128)
         
         # Encoder (downsampling path)
         self.enc1 = DoubleConv(in_channels, 64)
@@ -147,9 +197,12 @@ class NeuroUNET(nn.Module):
         # Final output layer
         self.out = nn.Conv2d(64, out_channels, kernel_size=1)
     
-    def forward(self, x):
+    def forward(self, x_patch, x_full):
+        # Full image features with global conteext
+        global_context = self.global_branch(x_full)
+        
         # Encoder with DWT downsampling
-        enc1 = self.enc1(x)
+        enc1 = self.enc1(x_patch)
         x = self.dwt(enc1)
         x = self.adapt1(x)
         
@@ -164,16 +217,32 @@ class NeuroUNET(nn.Module):
         # Bottleneck
         x = self.bottleneck(x)
         
+        # Project context and add to bottleneck features
+        context_bottleneck = self.context_proj_bottleneck(global_context)
+        # Reshape and add: (B, 512) -> (B, 512, 1, 1) and broadcast
+        context_bottleneck = context_bottleneck.view(x.size(0), -1, 1, 1)
+        x = x + context_bottleneck
+        
         # Decoder with IWT upsampling
         x = self.expand3(x)
         x = self.iwt(x)
         x = torch.cat([x, enc3], dim=1)
         x = self.dec3(x)
+    
+        # inject global context
+        context_dec3 = self.context_proj_dec3(global_context)
+        context_dec3 = context_dec3.view(x.size(0), -1, 1, 1)
+        x = x + context_dec3
         
         x = self.expand2(x)
         x = self.iwt(x)
         x = torch.cat([x, enc2], dim=1)
         x = self.dec2(x)
+        
+        # inject global context
+        context_dec2 = self.context_proj_dec2(global_context)
+        context_dec2 = context_dec2.view(x.size(0), -1, 1, 1)
+        x = x + context_dec2
         
         x = self.expand1(x)
         x = self.iwt(x)
@@ -184,7 +253,7 @@ class NeuroUNET(nn.Module):
         x = self.out(x)
         return x
 
-def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-3, device='cuda', scheduler_type='plateau'):
+def TrainModel(model, train_loader, val_loader, dapi_channel = 0, cb_channel = 3, num_epochs=20, lr=1e-3, device='cuda'):
     """
     Train the UNET model with learning rate scheduling
     
@@ -201,27 +270,6 @@ def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-3, device='
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
     
-    # Initialize scheduler based on type
-    if scheduler_type == 'plateau':
-        
-        # Reduces LR when validation loss plateaus
-        scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            optimizer, mode='min', factor=0.5, patience=3
-        )
-        
-    elif scheduler_type == 'step':
-        # Reduces LR every step_size epochs
-        scheduler = optim.lr_scheduler.StepLR(
-            optimizer, step_size=5, gamma=0.5
-        )
-    elif scheduler_type == 'cosine':
-        # Cosine annealing scheduler
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max=num_epochs, eta_min=1e-6
-        )
-    else:
-        scheduler = None
-    
     best_val_loss = float('inf')
     
     # add wandb for plotting
@@ -230,7 +278,6 @@ def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-3, device='
         config={
             "model_name": "NeuroUNET",
             "learning_rate": lr,
-            "scheduler_type": scheduler_type,
             "epochs": num_epochs,
             "loss_function": "MSE",
         }
@@ -246,9 +293,14 @@ def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-3, device='
             for batch_idx, images in enumerate(prog):
                 images = images.to(device)
                 
-                # Split the 4-channel image: first 2 channels as input, last 2 as target
-                inputs = images[:, :2, :, :]  # First 2 channels
-                targets = images[:, 2:, :, :]  # Last 2 channels
+                input_channels = [dapi_channel, cb_channel]
+                all_channels = [0, 1, 2, 3]
+                
+                target_channels = [c for c in all_channels if c not in input_channels]
+
+                # divide into input and target
+                inputs = images[:, input_channels, :, :]
+                targets = images[:, target_channels, :, :]
                 
                 # Forward pass
                 optimizer.zero_grad()
@@ -283,8 +335,15 @@ def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-3, device='
             with torch.no_grad():
                 for images in val_pbar:
                     images = images.to(device)
-                    inputs = images[:, :2, :, :]
-                    targets = images[:, 2:, :, :]
+                    
+                    input_channels = [dapi_channel, cb_channel]
+                    all_channels = [0, 1, 2, 3]
+                    
+                    target_channels = [c for c in all_channels if c not in input_channels]
+
+                    # divide into input and target
+                    inputs = images[:, input_channels, :, :]
+                    targets = images[:, target_channels, :, :]
                     
                     outputs = model(inputs)
                     loss = nn.functional.mse_loss(outputs, targets)
@@ -294,13 +353,6 @@ def TrainModel(model, train_loader, val_loader, num_epochs=20, lr=1e-3, device='
                     val_pbar.set_postfix({'loss': loss.item()})
             
             avg_val_loss = val_loss / len(val_loader)
-            
-            # Step the scheduler
-            if scheduler:
-                if scheduler_type == 'plateau':
-                    scheduler.step(avg_val_loss)
-                else:
-                    scheduler.step()
             
             # Get current learning rate
             current_lr = optimizer.param_groups[0]['lr']
