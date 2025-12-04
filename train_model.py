@@ -58,11 +58,14 @@ def TrainPerWell(train_img_path, val_img_path):
 
 
 # mkdir for checkpoints
-base_training_dir = Path("/run/user/1000/gvfs/smb-share:server=zhao-nas.lan.local.cmu.edu,share=zhao-lab/Magnify Biosciences/capstone/11Nov25_acquire_40x_z_2x2/preprocessed")
+#base_training_dir = Path("/run/user/1000/gvfs/smb-share:server=zhao-nas.lan.local.cmu.edu,share=zhao-lab/Magnify Biosciences/capstone/11Nov25_acquire_40x_z_2x2/preprocessed")
+
+home = Path.home()
+base_training_dir = home / "em_capstone_f25" / "Images" / "A1_tiled"
 
 # set up image dirs
 train_imgs = base_training_dir / "train"
 val_imgs = base_training_dir / "val"
 
-
+TrainPerWell(train_imgs, val_imgs)
 

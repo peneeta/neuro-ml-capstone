@@ -31,7 +31,7 @@ def SplitTrainTestVal(image_dir, train_ratio=0.7, val_ratio=0.1, test_ratio=0.2,
         raise FileNotFoundError(f"Directory not found: {image_dir}")
     
     # Common image extensions
-    img_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp'}
+    img_extensions = {'.tif'}
     
     # Get all image files
     images = [f for f in image_dir.iterdir() 
