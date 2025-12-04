@@ -7,5 +7,4 @@ __pycache__
 
 # prepr. img too beefy
 images/test_images/A1_FOV01_Z100_proc.tif
-images/informative_slices
 images/informative_slices/*
