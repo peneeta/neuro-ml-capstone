@@ -31,19 +31,22 @@ start_time = time.time()
 
 ##################################################
 # tile the images further
-base_fp = Path("/run/user/1000/gvfs/smb-share:server=zhao-nas.lan.local.cmu.edu,share=zhao-lab/Magnify Biosciences/capstone/11Nov25_acquire_40x_z_2x2")
+# base_fp = Path("/run/user/1000/gvfs/smb-share:server=zhao-nas.lan.local.cmu.edu,share=zhao-lab/Magnify Biosciences/capstone/11Nov25_acquire_40x_z_2x2")
 
-img_dir  = base_fp / "preprocessed" / "A1_preprocessed"
-output_dir = base_fp / "tiled" / "A1_tiled"
+base_fp = home / "em_capstone_f25" 
+
+img_dir  = base_fp / "Images" / "A1_preprocessed"
+output_dir = base_fp / "Images" / "A1_tiled"
 
 print("Splitting Images")
 start_time = time.time()
 
+# just try locally for now, TODO replace with stride 100 
 SplitInformativePatches(
         img_dir,
         output_dir,
         tile_size=576,
-        stride = 100,
+        stride = 200,
         tissue_threshold=0.01,
         nucleus_threshold=0.9, # looks like this is the best to include nuclei
         receptor_threshold=0.01,
