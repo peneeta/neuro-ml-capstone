@@ -158,51 +158,47 @@ def SplitSingleImages(img_dir, output_dir, tile_size=576):
         
     print(f"Finished - created {total_tiles} tiles")
 
-def PreprocessSplitImages(img_filepath, output_dir = "preprocessed"):
+# note - only selecting 2 FOVs because computationally expensive to preprocesses
+def PreprocessSplitImages(img_filepath, output_dir="preprocessed"):
 
-    # convert to Path object for easier handling
     img_dir = Path(img_filepath)
-    
-    # get all .tif files in the directory
-    tif_files = list(img_dir.glob("*.tif"))
-    
-    # check if there are any
+
+    # get all .tif files then filter FOV00 or FOV01
+    tif_files = [
+        f for f in img_dir.glob("*.tif")
+        if ("FOV00" in f.name or "FOV01" in f.name)
+    ]
+
     if not tif_files:
-        print(f"No .tif files found in {img_filepath}")
+        print(f"No matching .tif files (FOV00/FOV01) found in {img_filepath}")
         return
-    
-    print(f"Found {len(tif_files)} img file(s)")
-    
-    # make output dir if not exist
+
+    print(f"Found {len(tif_files)} matching img file(s)")
+
     output_dir = Path(output_dir)
     output_dir.mkdir(exist_ok=True)
     print(f"Output directory: {output_dir}")
-    
-    # iterate and preprocess all files
+
     for im in tif_files:
         print(f"\nProcessing: {im.name}")
-        
+
         start_time = time.time()
-        
-        # Open file - tifffile handles multi-channel images
+
         curr_im = tifffile.imread(im)
-        
-        # preprocess
+
         processed = PreprocessImage(curr_im)
-        
+
         print("PROCESSED IMG SHAPE:", processed.shape)
-        
-        # Save to file with prefix _pr.tif within the output_dir
+
         output_filename = im.stem + "_pr.tif"
         output_path = output_dir / output_filename
         tifffile.imwrite(output_path, processed, compression="deflate")
         print(f"Saved: {output_filename}")
-        
-        end_time = time.time()
-        elapsed_time = end_time - start_time
-        print("took ", elapsed_time, " seconds")
-    
-    print("\nProcessing complete! Saved images")
+
+        elapsed_time = time.time() - start_time
+        print("took", elapsed_time, "seconds")
+
+    print("\nProcessing complete! Saved images.")
 
 def GaussianBlur(img):
 

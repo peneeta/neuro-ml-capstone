@@ -107,72 +107,13 @@ class DoubleConv(nn.Module):
     def forward(self, x):
         return self.double_conv(x)
 
-# class GlobalContextBranch(nn.Module):
-#     """
-#     Processes the full 576x576 image to extract global context features.
-#     Uses progressive downsampling to create a compact feature vector.
-#     """
-#     def __init__(self, in_channels=2, feature_dim=256):
-#         super().__init__()
-        
-#         # Progressive downsampling: 576 -> 288 -> 144 -> 72 -> 36 -> 18 -> 9
-#         self.conv1 = nn.Sequential(
-#             nn.Conv2d(in_channels, 32, kernel_size=3, stride=2, padding=1),  # 288x288
-#             nn.BatchNorm2d(32),
-#             nn.ReLU(inplace=True)
-#         )
-        
-#         self.conv2 = nn.Sequential(
-#             nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1),  # 144x144
-#             nn.BatchNorm2d(64),
-#             nn.ReLU(inplace=True)
-#         )
-        
-#         self.conv3 = nn.Sequential(
-#             nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1),  # 72x72
-#             nn.BatchNorm2d(128),
-#             nn.ReLU(inplace=True)
-#         )
-        
-#         self.conv4 = nn.Sequential(
-#             nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=1),  # 36x36
-#             nn.BatchNorm2d(256),
-#             nn.ReLU(inplace=True)
-#         )
-        
-#         # Global average pooling to get feature vector
-#         self.gap = nn.AdaptiveAvgPool2d(1)
-        
-#         # Project to desired feature dimension
-#         self.fc = nn.Sequential(
-#             nn.Linear(256, feature_dim),
-#             nn.ReLU(inplace=True)
-#         )
-
 class NeuroUNET(nn.Module):
-    """UNET with DWT/IWT for superior detail preservation
-    
-    Key improvements:
-    - DWT replaces MaxPool: preserves all frequency information
-    - IWT replaces ConvTranspose: perfect reconstruction
-    - Channel adaptation layers handle 4x channel expansion from DWT
-    """
-    def __init__(self, in_channels=2, out_channels=2, wavelet='haar', context_dim=256):
+    def __init__(self, in_channels=2, out_channels=2, wavelet='haar'):
         super().__init__()
         
-        # DWT/IWT transforms
         self.dwt = DWT(wavelet=wavelet)
-        self.iwt = IWT(wavelet=wavelet)
         
-        # Global context
-        # self.global_branch = GlobalContextBranch(in_channels, context_dim)
-        
-        # Context injection layers - add global features to decoder
-        self.context_proj_bottleneck = nn.Linear(context_dim, 512)
-        self.context_proj_dec3 = nn.Linear(context_dim, 256)
-        self.context_proj_dec2 = nn.Linear(context_dim, 128)
-        
-        # Encoder (downsampling path)
+        # Encoder
         self.enc1 = DoubleConv(in_channels, 64)
         self.adapt1 = nn.Conv2d(64 * 4, 64, kernel_size=1)
         
@@ -182,91 +123,58 @@ class NeuroUNET(nn.Module):
         self.enc3 = DoubleConv(128, 256)
         self.adapt3 = nn.Conv2d(256 * 4, 256, kernel_size=1)
         
-        # Bottleneck
         self.bottleneck = DoubleConv(256, 512)
         
-        # Decoder (upsampling path)
-        # Need to expand channels before IWT (C -> C*4)
-        self.expand3 = nn.Conv2d(512, 256 * 4, kernel_size=1)
-        self.dec3 = DoubleConv(512, 256)  # 512 because of concatenation
+        # Decoder with ConvTranspose (or Upsample+Conv)
+        self.up3 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
+        self.dec3 = DoubleConv(512, 256)
         
-        self.expand2 = nn.Conv2d(256, 128 * 4, kernel_size=1)
+        self.up2 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
         self.dec2 = DoubleConv(256, 128)
         
-        self.expand1 = nn.Conv2d(128, 64 * 4, kernel_size=1)
+        self.up1 = nn.ConvTranspose2d(128, 64, kernel_size=2, stride=2)
         self.dec1 = DoubleConv(128, 64)
         
-        # Final output layer
         self.out = nn.Conv2d(64, out_channels, kernel_size=1)
     
     def forward(self, x):
-        # Full image features with global conteext
-        # global_context = self.global_branch(x_full)
-        
-        # Encoder with DWT downsampling
+        # Encoder with DWT
         enc1 = self.enc1(x)
-        x = self.dwt(enc1)
-        x = self.adapt1(x)
+        x = self.adapt1(self.dwt(enc1))
         
         enc2 = self.enc2(x)
-        x = self.dwt(enc2)
-        x = self.adapt2(x)
+        x = self.adapt2(self.dwt(enc2))
         
         enc3 = self.enc3(x)
-        x = self.dwt(enc3)
-        x = self.adapt3(x)
+        x = self.adapt3(self.dwt(enc3))
         
-        # Bottleneck
         x = self.bottleneck(x)
         
-        # Project context and add to bottleneck features
-        # context_bottleneck = self.context_proj_bottleneck(global_context)
-        # # Reshape and add: (B, 512) -> (B, 512, 1, 1) and broadcast
-        # context_bottleneck = context_bottleneck.view(x.size(0), -1, 1, 1)
-        # x = x + context_bottleneck
-        
-        # Decoder with IWT upsampling
-        x = self.expand3(x)
-        x = self.iwt(x)
+        # Decoder with standard upsampling
+        x = self.up3(x)
         x = torch.cat([x, enc3], dim=1)
         x = self.dec3(x)
-    
-        # inject global context
-        # context_dec3 = self.context_proj_dec3(global_context)
-        # context_dec3 = context_dec3.view(x.size(0), -1, 1, 1)
-        # x = x + context_dec3
         
-        x = self.expand2(x)
-        x = self.iwt(x)
+        x = self.up2(x)
         x = torch.cat([x, enc2], dim=1)
         x = self.dec2(x)
         
-        # inject global context
-        # context_dec2 = self.context_proj_dec2(global_context)
-        # context_dec2 = context_dec2.view(x.size(0), -1, 1, 1)
-        # x = x + context_dec2
-        
-        x = self.expand1(x)
-        x = self.iwt(x)
+        x = self.up1(x)
         x = torch.cat([x, enc1], dim=1)
         x = self.dec1(x)
         
-        # Output
-        x = self.out(x)
-        return x
+        return self.out(x)
 
 def TrainModel(model, train_loader, val_loader, checkpoint_dir, dapi_channel = 0, cb_channel = 3, num_epochs=20, lr=1e-3, device='cuda'):
     """
     Train the UNET model with learning rate scheduling
     
-    Args:
-        model: UNET model instance
-        train_loader: DataLoader for training data
-        val_loader: DataLoader for validation data
-        num_epochs: Number of training epochs
-        lr: Initial learning rate
-        device: Device to train on ('cuda' or 'cpu')
-        scheduler_type: Type of scheduler ('plateau', 'step', 'cosine')
+    model: UNET model instance
+    train_loader: DataLoader for training data
+    val_loader: DataLoader for validation data
+    num_epochs: Number of training epochs
+    lr: Initial learning rate
+    device: Device to train on ('cuda' or 'cpu')
     """
     
     # init the checkpoint dir
@@ -275,6 +183,7 @@ def TrainModel(model, train_loader, val_loader, checkpoint_dir, dapi_channel = 0
     
     model = model.to(device)
     optimizer = optim.Adam(model.parameters(), lr=lr)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5)
     
     best_val_loss = float('inf')
     
@@ -317,6 +226,15 @@ def TrainModel(model, train_loader, val_loader, checkpoint_dir, dapi_channel = 0
                 
                 # Backward pass
                 loss.backward()
+                
+                # check for vanishing gradients...
+                total_norm = 0
+                for p in model.parameters():
+                    if p.grad is not None:
+                        total_norm += p.grad.data.norm(2).item() ** 2
+                total_norm = total_norm ** 0.5
+                print(f'Gradient norm: {total_norm}')
+
                 optimizer.step()
                 
                 train_loss += loss.item()
