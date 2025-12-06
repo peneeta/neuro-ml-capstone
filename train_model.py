@@ -3,6 +3,7 @@ from pathlib import Path
 from model import NeuroUNET, TrainModel
 from dataset import EMDataset
 from torch.utils.data import DataLoader
+import torch
 
 ##########################################
 # NeuroML Capstone Project
@@ -12,6 +13,9 @@ from torch.utils.data import DataLoader
 
 # wandb key
 # c910b4614aece494cca185307fe3efe926ffb62c
+
+# set GPU 
+print(torch.cuda.is_available())
 
 def TrainPerWell(train_img_path, val_img_path, checkpoint_dir):
     
@@ -43,16 +47,18 @@ def TrainPerWell(train_img_path, val_img_path, checkpoint_dir):
         train_dataset,
         batch_size=25,
         shuffle=True,
-        num_workers=0,
-        pin_memory=True
+        num_workers=4,
+        pin_memory=True,
+        persistent_workers=True
     )
 
     val_loader = DataLoader(
         val_dataset,
         batch_size=25,
         shuffle=False,
-        num_workers=0,
-        pin_memory=True
+        num_workers=4,
+        pin_memory=True,
+        persistent_workers=True 
     )
     
     # train the model on images (TODO: increase epochs later)
