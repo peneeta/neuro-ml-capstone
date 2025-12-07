@@ -195,14 +195,13 @@ def PreprocessSplitImages(img_filepath, output_dir="preprocessed"):
         start_time = time.time()
 
         curr_im = tifffile.imread(im)
-
         processed = MinimalPreprocessing(curr_im)
 
         print("PROCESSED IMG SHAPE:", processed.shape)
 
         output_filename = im.stem + "_pr.tif"
         output_path = output_dir / output_filename
-        tifffile.imwrite(output_path, processed, compression="deflate")
+        tifffile.imwrite(output_path, processed)
         print(f"Saved: {output_filename}")
 
         elapsed_time = time.time() - start_time
