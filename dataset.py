@@ -15,11 +15,11 @@ class EMDataset(Dataset):
     Custom Dataset for loading and tiling images for UNET training
     Each epoch uses one random tile per image
     """
-    def __init__(self, image_paths, tile_size=256, augment=False):
+    def __init__(self, image_paths, tile_size=128, augment=True):
         """
         Args:
             image_paths: List of paths to input images
-            tile_size: Size of square tiles to extract (default: 256x256)
+            tile_size: Size of square tiles to extract (128x128)
             augment: Whether to apply data augmentation
         """
         self.image_paths = image_paths
