@@ -177,9 +177,7 @@ def PreprocessSplitImages(img_filepath, output_dir="preprocessed"):
 
     img_dir = Path(img_filepath)
 
-    tif_files = [
-        img_dir.glob("*.tif")
-    ]
+    tif_files = list(img_dir.glob("*.tif")) 
 
     if not tif_files:
         print(f"No .tif files in  {img_filepath}")
