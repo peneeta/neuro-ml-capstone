@@ -1,0 +1,16 @@
+Dataset split complete:
+  Train_full: 323 images
+  Test:       81 images
+Dataset split complete:
+  Train_full: 323 images
+  Test:       81 images
+Dataset split complete:
+  Train_full: 214 images
+  Test:       54 images
+Traceback (most recent call last):
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/split_train_test_val.py", line 146, in <module>
+    TileImages(dir_to_split, output_dir)
+    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/split_train_test_val.py", line 91, in TileImages
+    raise ValueError(f"No TIF files found in {input_dir}")
+ValueError: No TIF files found in /jet/home/pwojcik/lm_lab_proj/preprocessed/B1_preprocessed
