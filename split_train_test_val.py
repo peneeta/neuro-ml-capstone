@@ -133,13 +133,13 @@ base_fp = home / "lm_lab_proj"
 
 dirs = ["B1", "B2", "B3"]
 
-for dir_name in dirs:
-    dir_to_split = base_fp / "preprocessed" / (dir_name + "_preprocessed")
-    SplitTwoSets(dir_to_split)
+# for dir_name in dirs:
+#     dir_to_split = base_fp / "preprocessed" / (dir_name + "_preprocessed")
+#     SplitTwoSets(dir_to_split)
     
 # then subdivide into tiles
 for dir_name in dirs:
-    dir_to_split = base_fp / "preprocessed" / (dir_name + "_preprocessed")
+    dir_to_split = base_fp / "preprocessed" / (dir_name + "_preprocessed/train_full")
     output_dir = base_fp / "for_training" / (dir_name + "_split")
     
     # tile images (stride 200 px)
