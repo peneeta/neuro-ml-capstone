@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import wandb
 import pywt
+from pytorch_msssim import ssim
 
 ##########################################
 # NeuroML Capstone Project
@@ -112,22 +113,16 @@ class NeuroUNET(nn.Module):
         
         self.dwt = DWT(wavelet=wavelet)
         
-        # Encoder
+        # Encoder (3 levels instead of 4)
         self.enc1 = DoubleConv(in_channels, 64)
         self.adapt1 = nn.Conv2d(64 * 4, 64, kernel_size=1)
         
         self.enc2 = DoubleConv(64, 128)
         self.adapt2 = nn.Conv2d(128 * 4, 128, kernel_size=1)
         
-        self.enc3 = DoubleConv(128, 256)
-        self.adapt3 = nn.Conv2d(256 * 4, 256, kernel_size=1)
+        self.bottleneck = DoubleConv(128, 256)
         
-        self.bottleneck = DoubleConv(256, 512)
-        
-        # Decoder with ConvTranspose (or Upsample+Conv)
-        self.up3 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
-        self.dec3 = DoubleConv(512, 256)
-        
+        # Decoder
         self.up2 = nn.ConvTranspose2d(256, 128, kernel_size=2, stride=2)
         self.dec2 = DoubleConv(256, 128)
         
@@ -138,36 +133,28 @@ class NeuroUNET(nn.Module):
     
     def forward(self, x):
         # Encoder with DWT
-        enc1 = self.enc1(x)
-        x = self.adapt1(self.dwt(enc1))
+        enc1 = self.enc1(x)  # 128×128
+        x = self.adapt1(self.dwt(enc1))  # 64×64
         
-        enc2 = self.enc2(x)
-        x = self.adapt2(self.dwt(enc2))
+        enc2 = self.enc2(x)  # 64×64
+        x = self.adapt2(self.dwt(enc2))  # 32×32
         
-        enc3 = self.enc3(x)
-        x = self.adapt3(self.dwt(enc3))
+        x = self.bottleneck(x)  # 32×32
         
-        x = self.bottleneck(x)
-        
-        # Decoder with standard upsampling
-        x = self.up3(x)
-        x = torch.cat([x, enc3], dim=1)
-        x = self.dec3(x)
-        
-        x = self.up2(x)
+        # Decoder
+        x = self.up2(x)  # 64×64
         x = torch.cat([x, enc2], dim=1)
         x = self.dec2(x)
         
-        x = self.up1(x)
+        x = self.up1(x)  # 128×128
         x = torch.cat([x, enc1], dim=1)
         x = self.dec1(x)
         
-        return self.out(x)
+        return self.out(x)  # 128×128
 
     def predict(self, input_img):
         pass
-    
-    
+      
 def TrainModel(model, train_loader, val_loader, checkpoint_dir, dapi_channel = 0, cb_channel = 3, num_epochs=20, lr=1e-3, device='cuda'):
     """
     Train the UNET model with learning rate scheduling
@@ -192,12 +179,12 @@ def TrainModel(model, train_loader, val_loader, checkpoint_dir, dapi_channel = 0
     
     # add wandb for plotting
     wandb.init(
-        project="NeuroUNET Testing",
+        project="NeuroUNET with Real Data",
         config={
             "model_name": "NeuroUNET",
             "learning_rate": lr,
             "epochs": num_epochs,
-            "loss_function": "MSE",
+            "loss_function": "SSIM",
         }
     )
         
@@ -224,20 +211,12 @@ def TrainModel(model, train_loader, val_loader, checkpoint_dir, dapi_channel = 0
                 optimizer.zero_grad()
                 outputs = model(inputs)
                 
-                # Compute loss using MSE loss
-                loss = nn.functional.mse_loss(outputs, targets)
+                # SSIM loss
+                ssim_value = ssim(outputs, targets, data_range=1.0, size_average=True)
+                loss = 1 - ssim_value
                 
                 # Backward pass
                 loss.backward()
-                
-                # check for vanishing gradients...
-                total_norm = 0
-                for p in model.parameters():
-                    if p.grad is not None:
-                        total_norm += p.grad.data.norm(2).item() ** 2
-                total_norm = total_norm ** 0.5
-                print(f'Gradient norm: {total_norm}')
-
                 optimizer.step()
                 
                 train_loss += loss.item()
@@ -273,13 +252,19 @@ def TrainModel(model, train_loader, val_loader, checkpoint_dir, dapi_channel = 0
                     targets = images[:, target_channels, :, :]
                     
                     outputs = model(inputs)
-                    loss = nn.functional.mse_loss(outputs, targets)
+                    
+                    # loss SSIM
+                    ssim_value = ssim(outputs, targets, data_range=1.0, size_average=True)
+                    loss = 1 - ssim_value
                     val_loss += loss.item()
                     
-                    # Update progress bar with current loss
+                    # update progress bar with current loss
                     val_pbar.set_postfix({'loss': loss.item()})
             
             avg_val_loss = val_loss / len(val_loader)
+            
+            # update scheduler
+            scheduler.step(avg_val_loss)
             
             # Get current learning rate
             current_lr = optimizer.param_groups[0]['lr']
