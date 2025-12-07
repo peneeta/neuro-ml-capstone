@@ -8,6 +8,7 @@
 
 # load modules
 module load anaconda3/2024.10-1
+module load cuda
 
 # activate python env
 conda activate pyML
