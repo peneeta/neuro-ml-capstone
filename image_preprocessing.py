@@ -31,6 +31,82 @@ def Plot4Channel(im_array):
     plt.tight_layout()
     plt.show()
 
+def ZScoreNorm(img):
+    """Perform z score normalization across the image
+    """
+    
+    img = img.astype(np.float64)
+    corrected = np.empty_like(img)
+    
+    # iter over channels (CHANNELS ARE THE FIRST DIM)
+    for c in range(img.shape[0]):
+        
+        channel = img[c, ...]
+    
+        # scale all pixel values to floats between 0 and 1
+        mean = np.mean(channel)
+        std = np.std(channel)
+        
+        # in case the channel is empty just return it
+        if std == 0:
+            corrected[c, ...] = channel
+        else:
+            normalized = (channel - mean) / std
+            corrected[c, ...] = normalized
+    
+    return corrected
+    
+def PlotBeforeAfterIntensityHists(im1, im2):
+    fig1, axes1 = plt.subplots(2, 2, figsize=(10, 8))
+    fig1.suptitle('Pre-normalized Image', fontsize=14)
+    
+    # zscore both
+    im1 = ZScoreNorm(im1)
+    im2 = ZScoreNorm(im2)
+
+    for i in range(4):
+        row = i // 2
+        col = i % 2
+        channel_data = im1[i].flatten()
+        
+        axes1[row, col].hist(channel_data, bins=30, color='blue', alpha=0.7, edgecolor='black')
+        axes1[row, col].set_title(f'Channel {i+1}', fontsize=10)
+        axes1[row, col].set_xlabel('Intensity')
+        axes1[row, col].set_ylabel('Frequency')
+        axes1[row, col].grid(True, alpha=0.3)
+        
+        mean_val = np.mean(channel_data)
+        axes1[row, col].axvline(mean_val, color='red', linestyle='--', linewidth=2, 
+                            label=f'μ={mean_val:.2f}')
+        axes1[row, col].legend(fontsize=8)
+
+    plt.tight_layout()
+    plt.show()
+
+    # Plot processed (z-score normalized)
+    fig2, axes2 = plt.subplots(2, 2, figsize=(10, 8))
+    fig2.suptitle('Preprocessed Image', fontsize=14)
+
+    for i in range(4):
+        row = i // 2
+        col = i % 2
+        channel_data = im2[i].flatten()
+        
+        axes2[row, col].hist(channel_data, bins=30, color='green', alpha=0.7, edgecolor='black')
+        axes2[row, col].set_title(f'Channel {i+1}', fontsize=10)
+        axes2[row, col].set_xlabel('Intensity')
+        axes2[row, col].set_ylabel('Frequency')
+        axes2[row, col].grid(True, alpha=0.3)
+        
+        mean_val = np.mean(channel_data)
+        std_val = np.std(channel_data)
+        axes2[row, col].axvline(mean_val, color='red', linestyle='--', linewidth=2, 
+                            label=f'μ={mean_val:.3f}, σ={std_val:.3f}')
+        axes2[row, col].legend(fontsize=8)
+
+    plt.tight_layout()
+    plt.show()
+
 def SplitZImageStack(img_filepath, output_dir = "processed_zstack"):
     """
     Splits images in a Z-stack into single images, saves them as TIF files
@@ -218,31 +294,6 @@ def GaussianBlur(img):
     
     return blurred_image
 
-def ZScoreNorm(img):
-    """Perform z score normalization across the image
-    """
-    
-    img = img.astype(np.float64)
-    corrected = np.empty_like(img)
-    
-    # iter over channels (CHANNELS ARE THE FIRST DIM)
-    for c in range(img.shape[0]):
-        
-        channel = img[c, ...]
-    
-        # scale all pixel values to floats between 0 and 1
-        mean = np.mean(channel)
-        std = np.std(channel)
-        
-        # in case the channel is empty just return it
-        if std == 0:
-            corrected[c, ...] = channel
-        else:
-            normalized = (channel - mean) / std
-            corrected[c, ...] = normalized
-    
-    return corrected
-    
 def FlatFieldCorrection(img, sigma_xy=200,
                        clip_percent: float = 0.5,
                        correction_strength: float = 0.5,
