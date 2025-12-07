@@ -4,7 +4,6 @@ import torch.optim as optim
 from tqdm import tqdm
 import numpy as np
 import os
-import tifffile
 from pathlib import Path
 import wandb
 import pywt
@@ -165,6 +164,10 @@ class NeuroUNET(nn.Module):
         
         return self.out(x)
 
+    def predict(self, input_img):
+        pass
+    
+    
 def TrainModel(model, train_loader, val_loader, checkpoint_dir, dapi_channel = 0, cb_channel = 3, num_epochs=20, lr=1e-3, device='cuda'):
     """
     Train the UNET model with learning rate scheduling

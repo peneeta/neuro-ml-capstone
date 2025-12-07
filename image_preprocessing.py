@@ -2,6 +2,7 @@ import numpy as np
 from typing import Tuple
 from scipy.ndimage import gaussian_filter
 from cv2_rolling_ball import subtract_background_rolling_ball
+from skimage.morphology import white_tophat,  disk
 import matplotlib.pyplot as plt
 from pathlib import Path
 import nd2
@@ -15,6 +16,20 @@ import time
 # CMU Fall 2025
 # Image Preprocessing Code
 ##########################################
+
+def Plot4Channel(im_array):
+    fig, axes = plt.subplots(2, 2, figsize=(8, 8))
+    axes = axes.ravel()
+
+    # plot each channel
+    for i in range(4):
+        ax = axes[i]
+        ax.imshow(im_array[i, :, :], cmap='gray')
+        ax.set_title(f'Channel {i}')
+        ax.axis('off')
+
+    plt.tight_layout()
+    plt.show()
 
 def SplitZImageStack(img_filepath, output_dir = "processed_zstack"):
     """
@@ -158,19 +173,16 @@ def SplitSingleImages(img_dir, output_dir, tile_size=576):
         
     print(f"Finished - created {total_tiles} tiles")
 
-# note - only selecting 2 FOVs because computationally expensive to preprocesses
 def PreprocessSplitImages(img_filepath, output_dir="preprocessed"):
 
     img_dir = Path(img_filepath)
 
-    # get all .tif files then filter FOV00 or FOV01
     tif_files = [
         f for f in img_dir.glob("*.tif")
-        if ("FOV00" in f.name or "FOV01" in f.name)
     ]
 
     if not tif_files:
-        print(f"No matching .tif files (FOV00/FOV01) found in {img_filepath}")
+        print(f"No .tif files in  {img_filepath}")
         return
 
     print(f"Found {len(tif_files)} matching img file(s)")
@@ -186,7 +198,7 @@ def PreprocessSplitImages(img_filepath, output_dir="preprocessed"):
 
         curr_im = tifffile.imread(im)
 
-        processed = PreprocessImage(curr_im)
+        processed = MinimalPreprocessing(curr_im)
 
         print("PROCESSED IMG SHAPE:", processed.shape)
 
@@ -305,7 +317,7 @@ def FlatFieldCorrection(img, sigma_xy=200,
 
     return corrected
         
-def CLAHEContrastAdjustment(img, clip_limit = 2.0, tile_size = 8):
+def CLAHEContrastAdjustment(img, clip_limit = 3.0, tile_size = 8):
     """
     Enhances contrast of a multi-channel image after flat-field correction.
     
@@ -467,6 +479,21 @@ def BilateralDenoise(image, d=9, sigma_color=75, sigma_space=75):
     
     return filtered_image
 
+# very slow
+def TopHatBGSub(image, radius=50):
+    
+    processed = np.zeros_like(image)
+    
+    for i in range(image.shape[0]):
+        
+        print(f"Processing channel {i}")
+
+        str_el = disk(radius) 
+        processed[i, :, :] = white_tophat(image[i, :, :], str_el)
+
+    return processed
+
+# also very slow
 def MultiRollingBallBGSub(image):
     """
     Perform rolling ball background subtraction on each channel.
@@ -503,13 +530,13 @@ def MultiRollingBallBGSub(image):
         # This function returns TWO values: (corrected_image, background)
         corrected[i], background[i] = subtract_background_rolling_ball(
             channel, 
-            radius=50, 
+            radius=10, 
             light_background=False
         )
     
     return corrected, background
 
-# FULL PREPROCESSING PIPELINE
+# FULL PREPROCESSING PIPELINE (Super slow)
 def PreprocessImage(full_img, plot=False):
     """
     Function to preprocess a single image
@@ -548,6 +575,17 @@ def PreprocessImage(full_img, plot=False):
     # norm zscore
     return  ZScoreNorm(corr_img)
 
+# Minimal preprocessing - good enough for B wells
+def MinimalPreprocessing(full_img):
+    # verify that channels are first dim
+    if full_img.shape[0] != 4:
+        full_img = np.moveaxis(full_img, -1, 0)
+        
+    proc = CLAHEContrastAdjustment(full_img, clip_limit=3, tile_size=16)
+    proc = GaussianBlur(proc)
+    
+    return proc
+    
 #### 
 # Selecting patch informativeness
 ####
