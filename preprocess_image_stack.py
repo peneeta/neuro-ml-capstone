@@ -8,7 +8,7 @@ from pathlib import Path
 # Functions to preprocess an images for training
 ##########################################
 
-base_fp = Path(".")
+base_fp = Path("/ocean/projects/cis250266p/pwojcik")
 
 # preprocess the images
 start_time = time.time()
