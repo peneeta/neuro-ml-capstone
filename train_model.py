@@ -79,7 +79,7 @@ home = Path.home()
 # run this first
 # rsync -rltpDvp -e 'ssh -l pwojcik' data.bridges2.psc.edu:~/lm_lab_proj/for_training/B2_split .
 
-base_training_dir = home / "em_capstone_f25"
+base_training_dir = home / "em_capstone_f25" / "Images" / "B2_split"
 train_imgs = base_training_dir / "train_full"
 val_imgs = base_training_dir / "val"
 
