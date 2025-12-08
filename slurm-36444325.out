@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/split_train_test_val.py", line 137, in <module>
+    dir_to_split = base_fp / "preprocessed" / dir_name + "_preprocessed"
+                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~
+TypeError: unsupported operand type(s) for +: 'PosixPath' and 'str'

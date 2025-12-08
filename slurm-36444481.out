@@ -1,0 +1,186 @@
+W1207 16:14:24.371000 66523 site-packages/torch/distributed/run.py:803] 
+W1207 16:14:24.371000 66523 site-packages/torch/distributed/run.py:803] *****************************************
+W1207 16:14:24.371000 66523 site-packages/torch/distributed/run.py:803] Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+W1207 16:14:24.371000 66523 site-packages/torch/distributed/run.py:803] *****************************************
+FalseFalse
+
+False
+/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/distributed_c10d.py:747: UserWarning: Attempted to get default timeout for nccl backend, but NCCL support is not compiled
+  warnings.warn(
+/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/distributed_c10d.py:747: UserWarning: Attempted to get default timeout for nccl backend, but NCCL support is not compiled
+  warnings.warn(
+/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/distributed_c10d.py:747: UserWarning: Attempted to get default timeout for nccl backend, but NCCL support is not compiled
+  warnings.warn(
+Traceback (most recent call last):
+Traceback (most recent call last):
+Traceback (most recent call last):
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/train_model.py", line 116, in <module>
+    TrainPerWell(train_imgs, val_imgs, checkpoint_dir=ckpt_dir)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/train_model.py", line 116, in <module>
+    TrainPerWell(train_imgs, val_imgs, checkpoint_dir=ckpt_dir)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/train_model.py", line 116, in <module>
+    TrainPerWell(train_imgs, val_imgs, checkpoint_dir=ckpt_dir)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/train_model.py", line 39, in TrainPerWell
+    local_rank, world_size = setup_distributed()
+                             ~~~~~~~~~~~~~~~~~^^
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/train_model.py", line 39, in TrainPerWell
+    local_rank, world_size = setup_distributed()
+                             ~~~~~~~~~~~~~~~~~^^
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/train_model.py", line 39, in TrainPerWell
+    local_rank, world_size = setup_distributed()
+                             ~~~~~~~~~~~~~~~~~^^
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/train_model.py", line 18, in setup_distributed
+    dist.init_process_group(backend="nccl")
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/train_model.py", line 18, in setup_distributed
+    dist.init_process_group(backend="nccl")
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/train_model.py", line 18, in setup_distributed
+    dist.init_process_group(backend="nccl")
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/c10d_logger.py", line 81, in wrapper
+    return func(*args, **kwargs)
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/c10d_logger.py", line 81, in wrapper
+    return func(*args, **kwargs)
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/c10d_logger.py", line 81, in wrapper
+    return func(*args, **kwargs)
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/c10d_logger.py", line 95, in wrapper
+    func_return = func(*args, **kwargs)
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/c10d_logger.py", line 95, in wrapper
+    func_return = func(*args, **kwargs)
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/c10d_logger.py", line 95, in wrapper
+    func_return = func(*args, **kwargs)
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/distributed_c10d.py", line 1769, in init_process_group
+    default_pg, _ = _new_process_group_helper(
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        world_size,
+        ^^^^^^^^^^^
+    ...<8 lines>...
+        group_desc="default_pg",
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/distributed_c10d.py", line 1769, in init_process_group
+    default_pg, _ = _new_process_group_helper(
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        world_size,
+        ^^^^^^^^^^^
+    ...<8 lines>...
+        group_desc="default_pg",
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/distributed_c10d.py", line 1769, in init_process_group
+    default_pg, _ = _new_process_group_helper(
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        world_size,
+        ^^^^^^^^^^^
+    ...<8 lines>...
+        group_desc="default_pg",
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/distributed_c10d.py", line 2004, in _new_process_group_helper
+    raise RuntimeError("Distributed package doesn't have NCCL built in")
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/distributed_c10d.py", line 2004, in _new_process_group_helper
+    raise RuntimeError("Distributed package doesn't have NCCL built in")
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/distributed_c10d.py", line 2004, in _new_process_group_helper
+    raise RuntimeError("Distributed package doesn't have NCCL built in")
+RuntimeError: Distributed package doesn't have NCCL built in
+RuntimeError: Distributed package doesn't have NCCL built in
+RuntimeError: Distributed package doesn't have NCCL built in
+False
+/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/distributed_c10d.py:747: UserWarning: Attempted to get default timeout for nccl backend, but NCCL support is not compiled
+  warnings.warn(
+Traceback (most recent call last):
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/train_model.py", line 116, in <module>
+    TrainPerWell(train_imgs, val_imgs, checkpoint_dir=ckpt_dir)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/train_model.py", line 39, in TrainPerWell
+    local_rank, world_size = setup_distributed()
+                             ~~~~~~~~~~~~~~~~~^^
+  File "/ocean/projects/cis250266p/pwojcik/neuro-ml-capstone/train_model.py", line 18, in setup_distributed
+    dist.init_process_group(backend="nccl")
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/c10d_logger.py", line 81, in wrapper
+    return func(*args, **kwargs)
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/c10d_logger.py", line 95, in wrapper
+    func_return = func(*args, **kwargs)
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/distributed_c10d.py", line 1769, in init_process_group
+    default_pg, _ = _new_process_group_helper(
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~^
+        world_size,
+        ^^^^^^^^^^^
+    ...<8 lines>...
+        group_desc="default_pg",
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/distributed_c10d.py", line 2004, in _new_process_group_helper
+    raise RuntimeError("Distributed package doesn't have NCCL built in")
+RuntimeError: Distributed package doesn't have NCCL built in
+E1207 16:14:27.509000 66523 site-packages/torch/distributed/elastic/multiprocessing/api.py:882] failed (exitcode: 1) local_rank: 0 (pid: 66530) of binary: /jet/home/pwojcik/.conda/envs/pyML/bin/python3.14
+Traceback (most recent call last):
+  File "/jet/home/pwojcik/.conda/envs/pyML/bin/torchrun", line 7, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 357, in wrapper
+    return f(*args, **kwargs)
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/run.py", line 936, in main
+    run(args)
+    ~~~^^^^^^
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/run.py", line 927, in run
+    elastic_launch(
+    ~~~~~~~~~~~~~~~
+        config=config,
+        ~~~~~~~~~~~~~~
+        entrypoint=cmd,
+        ~~~~~~~~~~~~~~~
+    )(*cmd_args)
+    ~^^^^^^^^^^^
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/launcher/api.py", line 156, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+  File "/jet/home/pwojcik/.conda/envs/pyML/lib/python3.14/site-packages/torch/distributed/launcher/api.py", line 293, in launch_agent
+    raise ChildFailedError(
+    ...<2 lines>...
+    )
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+train_model.py FAILED
+------------------------------------------------------------
+Failures:
+[1]:
+  time      : 2025-12-07_16:14:27
+  host      : v012.ib.bridges2.psc.edu
+  rank      : 1 (local_rank: 1)
+  exitcode  : 1 (pid: 66531)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+[2]:
+  time      : 2025-12-07_16:14:27
+  host      : v012.ib.bridges2.psc.edu
+  rank      : 2 (local_rank: 2)
+  exitcode  : 1 (pid: 66532)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+[3]:
+  time      : 2025-12-07_16:14:27
+  host      : v012.ib.bridges2.psc.edu
+  rank      : 3 (local_rank: 3)
+  exitcode  : 1 (pid: 66533)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2025-12-07_16:14:27
+  host      : v012.ib.bridges2.psc.edu
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 66530)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+srun: error: v012: task 0: Exited with exit code 1
