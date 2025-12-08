@@ -1,0 +1,165 @@
+Epoch 1/100 [Train]: 100%|██████| 1163/1163 [15:59<00:00,  1.21it/s, loss=0.917]
+Epoch 1/100 [Val]: 100%|██████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.945]
+Epoch [1/100], Train Loss: 0.9482, Val Loss: 0.9427, LR: 1.00e-03
+saved best state dict for epoch 1
+Epoch 2/100 [Train]: 100%|███████| 1163/1163 [16:09<00:00,  1.20it/s, loss=0.91]
+Epoch 2/100 [Val]: 100%|██████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.887]
+Epoch [2/100], Train Loss: 0.9027, Val Loss: 0.9006, LR: 1.00e-03
+saved best state dict for epoch 2
+Epoch 3/100 [Train]: 100%|██████| 1163/1163 [16:02<00:00,  1.21it/s, loss=0.898]
+Epoch 3/100 [Val]: 100%|██████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.884]
+Epoch [3/100], Train Loss: 0.8996, Val Loss: 0.8991, LR: 1.00e-03
+saved best state dict for epoch 3
+Epoch 4/100 [Train]: 100%|██████| 1163/1163 [16:06<00:00,  1.20it/s, loss=0.901]
+Epoch 4/100 [Val]: 100%|██████████| 130/130 [01:41<00:00,  1.28it/s, loss=0.896]
+Epoch [4/100], Train Loss: 0.8986, Val Loss: 0.9018, LR: 1.00e-03
+Epoch 5/100 [Train]: 100%|██████| 1163/1163 [16:02<00:00,  1.21it/s, loss=0.888]
+Epoch 5/100 [Val]: 100%|██████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.915]
+Epoch [5/100], Train Loss: 0.8980, Val Loss: 0.9016, LR: 1.00e-03
+Epoch 6/100 [Train]: 100%|██████| 1163/1163 [16:02<00:00,  1.21it/s, loss=0.896]
+Epoch 6/100 [Val]: 100%|██████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.903]
+Epoch [6/100], Train Loss: 0.8975, Val Loss: 0.8971, LR: 1.00e-03
+saved best state dict for epoch 6
+Epoch 7/100 [Train]: 100%|██████| 1163/1163 [16:02<00:00,  1.21it/s, loss=0.902]
+Epoch 7/100 [Val]: 100%|██████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.898]
+Epoch [7/100], Train Loss: 0.8971, Val Loss: 0.8984, LR: 1.00e-03
+Epoch 8/100 [Train]: 100%|██████| 1163/1163 [15:56<00:00,  1.22it/s, loss=0.899]
+Epoch 8/100 [Val]: 100%|██████████| 130/130 [01:41<00:00,  1.29it/s, loss=0.893]
+Epoch [8/100], Train Loss: 0.8968, Val Loss: 0.8974, LR: 1.00e-03
+Epoch 9/100 [Train]: 100%|██████| 1163/1163 [15:58<00:00,  1.21it/s, loss=0.905]
+Epoch 9/100 [Val]: 100%|██████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.899]
+Epoch [9/100], Train Loss: 0.8966, Val Loss: 0.8974, LR: 1.00e-03
+Epoch 10/100 [Train]: 100%|█████| 1163/1163 [15:56<00:00,  1.22it/s, loss=0.896]
+Epoch 10/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.899]
+Epoch [10/100], Train Loss: 0.8964, Val Loss: 0.8979, LR: 1.00e-03
+Epoch 11/100 [Train]: 100%|█████| 1163/1163 [15:58<00:00,  1.21it/s, loss=0.895]
+Epoch 11/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.877]
+Epoch [11/100], Train Loss: 0.8962, Val Loss: 0.8996, LR: 1.00e-03
+Epoch 12/100 [Train]: 100%|█████| 1163/1163 [15:57<00:00,  1.21it/s, loss=0.909]
+Epoch 12/100 [Val]: 100%|█████████| 130/130 [01:39<00:00,  1.30it/s, loss=0.889]
+Epoch [12/100], Train Loss: 0.8960, Val Loss: 0.8982, LR: 1.00e-04
+Epoch 13/100 [Train]: 100%|█████| 1163/1163 [15:56<00:00,  1.22it/s, loss=0.893]
+Epoch 13/100 [Val]: 100%|█████████| 130/130 [01:39<00:00,  1.30it/s, loss=0.881]
+Epoch [13/100], Train Loss: 0.8949, Val Loss: 0.8953, LR: 1.00e-04
+saved best state dict for epoch 13
+Epoch 14/100 [Train]: 100%|█████| 1163/1163 [15:58<00:00,  1.21it/s, loss=0.902]
+Epoch 14/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.897]
+Epoch [14/100], Train Loss: 0.8947, Val Loss: 0.8957, LR: 1.00e-04
+Epoch 15/100 [Train]: 100%|█████| 1163/1163 [15:56<00:00,  1.22it/s, loss=0.894]
+Epoch 15/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.908]
+Epoch [15/100], Train Loss: 0.8946, Val Loss: 0.8963, LR: 1.00e-04
+Epoch 16/100 [Train]: 100%|█████| 1163/1163 [15:57<00:00,  1.21it/s, loss=0.894]
+Epoch 16/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.885]
+Epoch [16/100], Train Loss: 0.8945, Val Loss: 0.8956, LR: 1.00e-04
+Epoch 17/100 [Train]: 100%|█████| 1163/1163 [16:00<00:00,  1.21it/s, loss=0.896]
+Epoch 17/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.891]
+Epoch [17/100], Train Loss: 0.8945, Val Loss: 0.8949, LR: 1.00e-04
+saved best state dict for epoch 17
+Epoch 18/100 [Train]: 100%|█████| 1163/1163 [15:57<00:00,  1.21it/s, loss=0.899]
+Epoch 18/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.916]
+Epoch [18/100], Train Loss: 0.8944, Val Loss: 0.8977, LR: 1.00e-04
+Epoch 19/100 [Train]: 100%|█████| 1163/1163 [16:01<00:00,  1.21it/s, loss=0.888]
+Epoch 19/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.859]
+Epoch [19/100], Train Loss: 0.8944, Val Loss: 0.8972, LR: 1.00e-04
+Epoch 20/100 [Train]: 100%|█████| 1163/1163 [15:59<00:00,  1.21it/s, loss=0.894]
+Epoch 20/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.922]
+Epoch [20/100], Train Loss: 0.8944, Val Loss: 0.8956, LR: 1.00e-04
+Epoch 21/100 [Train]: 100%|█████| 1163/1163 [15:57<00:00,  1.21it/s, loss=0.896]
+Epoch 21/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.899]
+Epoch [21/100], Train Loss: 0.8943, Val Loss: 0.8951, LR: 1.00e-04
+Epoch 22/100 [Train]: 100%|█████| 1163/1163 [15:59<00:00,  1.21it/s, loss=0.893]
+Epoch 22/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.899]
+Epoch [22/100], Train Loss: 0.8943, Val Loss: 0.8957, LR: 1.00e-04
+Epoch 23/100 [Train]: 100%|█████| 1163/1163 [15:57<00:00,  1.22it/s, loss=0.896]
+Epoch 23/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.881]
+Epoch [23/100], Train Loss: 0.8942, Val Loss: 0.8952, LR: 1.00e-05
+Epoch 24/100 [Train]: 100%|█████| 1163/1163 [15:58<00:00,  1.21it/s, loss=0.895]
+Epoch 24/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.894]
+Epoch [24/100], Train Loss: 0.8943, Val Loss: 0.8969, LR: 1.00e-05
+Epoch 25/100 [Train]: 100%|█████| 1163/1163 [15:58<00:00,  1.21it/s, loss=0.891]
+Epoch 25/100 [Val]: 100%|██████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.89]
+Epoch [25/100], Train Loss: 0.8941, Val Loss: 0.8946, LR: 1.00e-05
+saved best state dict for epoch 25
+Epoch 26/100 [Train]: 100%|███████| 1163/1163 [15:59<00:00,  1.21it/s, loss=0.9]
+Epoch 26/100 [Val]: 100%|█████████| 130/130 [01:42<00:00,  1.27it/s, loss=0.911]
+Epoch [26/100], Train Loss: 0.8941, Val Loss: 0.8947, LR: 1.00e-05
+Epoch 27/100 [Train]: 100%|█████| 1163/1163 [15:58<00:00,  1.21it/s, loss=0.905]
+Epoch 27/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.907]
+Epoch [27/100], Train Loss: 0.8941, Val Loss: 0.8959, LR: 1.00e-05
+Epoch 28/100 [Train]: 100%|█████| 1163/1163 [15:57<00:00,  1.21it/s, loss=0.905]
+Epoch 28/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.889]
+Epoch [28/100], Train Loss: 0.8941, Val Loss: 0.8950, LR: 1.00e-05
+Epoch 29/100 [Train]: 100%|█████| 1163/1163 [15:58<00:00,  1.21it/s, loss=0.905]
+Epoch 29/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.892]
+Epoch [29/100], Train Loss: 0.8941, Val Loss: 0.8945, LR: 1.00e-05
+saved best state dict for epoch 29
+Epoch 30/100 [Train]: 100%|█████| 1163/1163 [15:58<00:00,  1.21it/s, loss=0.888]
+Epoch 30/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.888]
+Epoch [30/100], Train Loss: 0.8941, Val Loss: 0.8945, LR: 1.00e-05
+saved best state dict for epoch 30
+Epoch 31/100 [Train]: 100%|███████| 1163/1163 [15:57<00:00,  1.21it/s, loss=0.9]
+Epoch 31/100 [Val]: 100%|██████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.87]
+Epoch [31/100], Train Loss: 0.8941, Val Loss: 0.8951, LR: 1.00e-05
+Epoch 32/100 [Train]: 100%|█████| 1163/1163 [15:56<00:00,  1.22it/s, loss=0.895]
+Epoch 32/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.904]
+Epoch [32/100], Train Loss: 0.8941, Val Loss: 0.8952, LR: 1.00e-05
+Epoch 33/100 [Train]: 100%|█████| 1163/1163 [15:58<00:00,  1.21it/s, loss=0.903]
+Epoch 33/100 [Val]: 100%|██████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.88]
+Epoch [33/100], Train Loss: 0.8941, Val Loss: 0.8964, LR: 1.00e-05
+Epoch 34/100 [Train]: 100%|█████| 1163/1163 [16:00<00:00,  1.21it/s, loss=0.906]
+Epoch 34/100 [Val]: 100%|██████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.89]
+Epoch [34/100], Train Loss: 0.8941, Val Loss: 0.8952, LR: 1.00e-05
+Epoch 35/100 [Train]: 100%|█████| 1163/1163 [16:00<00:00,  1.21it/s, loss=0.888]
+Epoch 35/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.891]
+Epoch [35/100], Train Loss: 0.8941, Val Loss: 0.8952, LR: 1.00e-05
+Epoch 36/100 [Train]: 100%|█████| 1163/1163 [15:59<00:00,  1.21it/s, loss=0.892]
+Epoch 36/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.881]
+Epoch [36/100], Train Loss: 0.8940, Val Loss: 0.8950, LR: 1.00e-06
+Epoch 37/100 [Train]: 100%|█████| 1163/1163 [15:59<00:00,  1.21it/s, loss=0.899]
+Epoch 37/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.888]
+Epoch [37/100], Train Loss: 0.8940, Val Loss: 0.8965, LR: 1.00e-06
+Epoch 38/100 [Train]: 100%|█████| 1163/1163 [15:59<00:00,  1.21it/s, loss=0.893]
+Epoch 38/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.30it/s, loss=0.892]
+Epoch [38/100], Train Loss: 0.8941, Val Loss: 0.8959, LR: 1.00e-06
+Epoch 39/100 [Train]: 100%|█████| 1163/1163 [16:00<00:00,  1.21it/s, loss=0.888]
+Epoch 39/100 [Val]: 100%|█████████| 130/130 [01:40<00:00,  1.29it/s, loss=0.887]
+Epoch [39/100], Train Loss: 0.8941, Val Loss: 0.8966, LR: 1.00e-06
+Epoch 40/100 [Train]: 100%|█████| 1163/1163 [16:22<00:00,  1.18it/s, loss=0.874]
+Epoch 40/100 [Val]: 100%|█████████| 130/130 [01:44<00:00,  1.24it/s, loss=0.891]
+Epoch [40/100], Train Loss: 0.8941, Val Loss: 0.8961, LR: 1.00e-06
+Epoch 41/100 [Train]:  69%|████▏ | 807/1163 [11:30<05:04,  1.17it/s, loss=0.889]
+Traceback (most recent call last):
+  File "/home/WS_Tiger/em_capstone_f25/neuro-ml-capstone/train_model.py", line 88, in <module>
+    # TrainPerWell(train_imgs, val_imgs, checkpoint_dir=ckpt_dir)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/em_capstone_f25/neuro-ml-capstone/train_model.py", line 58, in TrainPerWell
+    model = TrainModel(model, train_loader, val_loader, checkpoint_dir=checkpoint_dir, num_epochs=40, device='cuda')
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/em_capstone_f25/neuro-ml-capstone/model.py", line 267, in TrainModel
+    outputs = model(inputs)
+              ^^^^^^^^^^^^^
+  File "/home/WS_Tiger/miniconda3/envs/pyML/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/miniconda3/envs/pyML/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/em_capstone_f25/neuro-ml-capstone/model.py", line 137, in forward
+    x = self.adapt1(self.dwt(enc1))  # 64×64
+                    ^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/miniconda3/envs/pyML/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1775, in _wrapped_call_impl
+    return self._call_impl(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/miniconda3/envs/pyML/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1786, in _call_impl
+    return forward_call(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/em_capstone_f25/neuro-ml-capstone/model.py", line 38, in forward
+    coeffs = pywt.dwt2(img, self.wavelet)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/miniconda3/envs/pyML/lib/python3.11/site-packages/pywt/_multidim.py", line 71, in dwt2
+    coefs = dwtn(data, wavelet, mode, axes)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/WS_Tiger/miniconda3/envs/pyML/lib/python3.11/site-packages/pywt/_multidim.py", line 186, in dwtn
+    cA, cD = dwt_axis(x, wav, mode, axis)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

@@ -37,7 +37,7 @@ def TrainPerWell(train_img_path, val_img_path, checkpoint_dir):
     # make dataloaders for training and val
     train_loader = DataLoader(
         train_dataset,
-        batch_size=25,  # Per-GPU batch size (total = 25*4 = 100)
+        batch_size=30,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
@@ -46,16 +46,15 @@ def TrainPerWell(train_img_path, val_img_path, checkpoint_dir):
 
     val_loader = DataLoader(
         val_dataset,
-        batch_size=25,
+        batch_size=30,
         shuffle=True,
         num_workers=4,
         pin_memory=True,
         persistent_workers=True,
-        prefetch_factor=2
     )
     
     # train the model on images
-    model = TrainModel(model, train_loader, val_loader, checkpoint_dir=checkpoint_dir, num_epochs=100, device='cuda')
+    model = TrainModel(model, train_loader, val_loader, checkpoint_dir=checkpoint_dir, num_epochs=40, device='cuda')
     print("Training completed!")
     
 #############################################################################
@@ -79,10 +78,25 @@ home = Path.home()
 # run this first
 # rsync -rltpDvp -e 'ssh -l pwojcik' data.bridges2.psc.edu:~/lm_lab_proj/for_training/B2_split .
 
-base_training_dir = home / "em_capstone_f25" / "Images" / "B2_split"
+# base_training_dir = home / "em_capstone_f25" / "Images" / "B2_split"
+# train_imgs = base_training_dir / "train_full"
+# val_imgs = base_training_dir / "val"
+
+# ckpt_dir = home / "checkpoint" / "B2_best_checkpoint"
+
+# TrainPerWell(train_imgs, val_imgs, checkpoint_dir=ckpt_dir)
+
+# train B3 on WS_Tiger
+
+# run this first
+# rsync -rltpDvp -e 'ssh -l pwojcik' data.bridges2.psc.edu:~/lm_lab_proj/for_training/B3_split .
+
+print("Starting B3 training")
+
+base_training_dir = home / "em_capstone_f25" / "Images" / "B3_split"
 train_imgs = base_training_dir / "train_full"
 val_imgs = base_training_dir / "val"
 
-ckpt_dir = home / "checkpoint" / "B2_best_checkpoint"
+ckpt_dir = home / "em_capstone_f25" / "checkpoint" / "B3_best_checkpoint"
 
 TrainPerWell(train_imgs, val_imgs, checkpoint_dir=ckpt_dir)
