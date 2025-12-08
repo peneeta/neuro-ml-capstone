@@ -61,14 +61,17 @@ def TrainPerWell(train_img_path, val_img_path, checkpoint_dir):
 
 home = Path.home()
 
-# # try B1 first
-# base_training_dir = home / "lm_lab_proj" / "for_training" / "B1_split"
+# try B1 first
 
-# # set up image dirs
+# run this first
+# rsync -rltpDvp -e 'ssh -l pwojcik' data.bridges2.psc.edu:~/lm_lab_proj/for_training/B1_split .
+
+# print("Starting B1 training")
+# base_training_dir = home / "em_capstone_f25" / "Images" / "B1_split"
 # train_imgs = base_training_dir / "train_full"
 # val_imgs = base_training_dir / "val"
 
-# ckpt_dir = home / "checkpoint" / "B1_best_checkpoint"
+# ckpt_dir = home / "em_capstone_f25" / "checkpoint" / "B1_best_checkpoint"
 
 # TrainPerWell(train_imgs, val_imgs, checkpoint_dir=ckpt_dir)
 

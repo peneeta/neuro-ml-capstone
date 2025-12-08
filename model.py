@@ -56,41 +56,6 @@ class DWT(nn.Module):
         
         return result
 
-class IWT(nn.Module):
-    """Inverse Wavelet Transform - replaces ConvTranspose for better detail reconstruction"""
-    def __init__(self, wavelet='haar'):
-        super().__init__()
-        self.wavelet = wavelet
-    
-    def forward(self, x):
-        # x shape: (B, C*4, H, W) where C*4 contains LL, LH, HL, HH coefficients
-        batch, channels_x4, height, width = x.shape
-        channels = channels_x4 // 4
-        
-        # Reconstruct each channel
-        recon_list = []
-        for b in range(batch):
-            batch_recon = []
-            for c in range(channels):
-                # Extract the 4 wavelet coefficients for this channel
-                cA = x[b, c * 4 + 0].cpu().detach().numpy()
-                cH = x[b, c * 4 + 1].cpu().detach().numpy()
-                cV = x[b, c * 4 + 2].cpu().detach().numpy()
-                cD = x[b, c * 4 + 3].cpu().detach().numpy()
-                
-                # Apply inverse DWT
-                coeffs = (cA, (cH, cV, cD))
-                img = pywt.idwt2(coeffs, self.wavelet)
-                
-                batch_recon.append(torch.from_numpy(img).to(x.device))
-            
-            recon_list.append(torch.stack(batch_recon, dim=0))
-        
-        # Reshape: (B, C, H*2, W*2)
-        result = torch.stack(recon_list, dim=0)
-        
-        return result
-
 class DoubleConv(nn.Module):
     """Double convolution block: Conv2d -> BatchNorm -> ReLU -> Conv2d -> BatchNorm -> ReLU"""
     def __init__(self, in_channels, out_channels):
@@ -151,6 +116,9 @@ class NeuroUNET(nn.Module):
         x = self.dec1(x)
         
         return self.out(x)  # 128×128
+    
+    def load_state_dict(self, state_dict, strict = True, assign = False):
+        return super().load_state_dict(state_dict, strict, assign)
 
     def predict(self, image, patch_size=128):
         """
