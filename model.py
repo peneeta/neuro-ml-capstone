@@ -229,6 +229,9 @@ def TrainModel(model, train_loader, val_loader, checkpoint_dir, dapi_channel = 0
     
     best_val_loss = float('inf')
     
+    # so can run wwithout specifying the key
+    wandb.login(key="c910b4614aece494cca185307fe3efe926ffb62c")
+    
     # add wandb for plotting
     wandb.init(
         project="NeuroUNET with Real Data",
