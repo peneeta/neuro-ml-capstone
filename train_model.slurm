@@ -16,7 +16,7 @@ conda activate pyML
 # nav
 cd ${HOME}/lm_lab_proj/neuro-ml-capstone
 
-srun torchrun \
+torchrun \
     --standalone \
     --nnodes=1 \
     --nproc_per_node=4 \
