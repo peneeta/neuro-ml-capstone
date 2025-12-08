@@ -10,20 +10,29 @@ import torch
 # Custom dataset instantation
 ##########################################
 
+import torch
+from torch.utils.data import Dataset
+import tifffile
+import numpy as np
+import random
+import torch.nn.functional as F
+
 class EMDataset(Dataset):
     """
     Custom Dataset for loading and tiling images for UNET training
     Each epoch uses one random tile per image
     """
-    def __init__(self, image_paths, tile_size=128, augment=True):
+    def __init__(self, image_paths, tile_size=128, output_size=64, augment=True):
         """
         Args:
             image_paths: List of paths to input images
             tile_size: Size of square tiles to extract (128x128)
+            output_size: Size to resize tiles to (64x64 for 4x speedup)
             augment: Whether to apply data augmentation
         """
         self.image_paths = image_paths
         self.tile_size = tile_size
+        self.output_size = output_size
         self.augment = augment
         
         # Store image dimensions for computing valid tile positions
@@ -91,6 +100,15 @@ class EMDataset(Dataset):
             
         # use torch tensor instead of numpy arr    
         tile = torch.from_numpy(tile).float()
+        
+        # Resize to output_size (e.g., 128x128 -> 64x64)
+        if self.output_size != self.tile_size:
+            tile = F.interpolate(
+                tile.unsqueeze(0),  # Add batch dimension
+                size=(self.output_size, self.output_size),
+                mode='bilinear',
+                align_corners=False
+            ).squeeze(0)  # Remove batch dimension
         
         return tile
     
