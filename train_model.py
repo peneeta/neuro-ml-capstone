@@ -151,10 +151,10 @@ home = Path.home()
 # run this first
 # rsync -rltpDvp -e 'ssh -l pwojcik' data.bridges2.psc.edu:~/lm_lab_proj/for_training/B2_split .
 
-base_training_dir = home / "em_capstone_f25"
+base_training_dir = home / "em_capstone_f25" / "Images"
 train_imgs = base_training_dir / "train_full"
 val_imgs = base_training_dir / "val"
 
-ckpt_dir = home / "checkpoint" / "B1_best_checkpoint"
+ckpt_dir = home / "em_capstone_f25" / "checkpoint" / "B1_best_checkpoint"
 
 TrainPerWell(train_imgs, val_imgs, checkpoint_dir=ckpt_dir)
