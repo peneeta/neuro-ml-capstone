@@ -152,8 +152,60 @@ class NeuroUNET(nn.Module):
         
         return self.out(x)  # 128×128
 
-    def predict(self, input_img):
-        pass
+    def predict(self, image, patch_size=128):
+        """
+        Predict on an image by dividing it into non-overlapping patches. Output image of shape (C, H, W) with predicted channels 1,2
+        """
+        c, h, w = image.shape
+        
+        # Calculate padding needed
+        pad_h = (patch_size - h % patch_size) % patch_size
+        pad_w = (patch_size - w % patch_size) % patch_size
+        
+        # Pad the image 
+        if pad_h > 0 or pad_w > 0:
+            padded = np.pad(image, ((0, 0), (0, pad_h), (0, pad_w)), mode='reflect')
+        else:
+            padded = image
+        
+        _, padded_h, padded_w = padded.shape
+        
+        # Calculate number of patches
+        n_patches_h = padded_h // patch_size
+        n_patches_w = padded_w // patch_size
+        
+        # Initialize output (keep all 4 channels)
+        output_padded = np.zeros((4, padded_h, padded_w), dtype=image.dtype)
+        
+        # Copy input channels 0 and 3 to output
+        output_padded[0, :, :] = padded[0, :, :]
+        output_padded[3, :, :] = padded[3, :, :]
+        
+        # Process each patch
+        for i in range(n_patches_h):
+            for j in range(n_patches_w):
+                
+                # Extract patch
+                y_start = i * patch_size
+                y_end = y_start + patch_size
+                x_start = j * patch_size
+                x_end = x_start + patch_size
+                
+                patch = padded[:, y_start:y_end, x_start:x_end]
+                
+                # Extract channels 0 and 3 for model input
+                patch_input = patch[[0, 3], :, :]
+                
+                # Predict channels 1 and 2
+                patch_pred = self.predict(patch_input)
+                
+                # Place predicted channels into output
+                output_padded[1:3, y_start:y_end, x_start:x_end] = patch_pred
+        
+        # Remove padding to get back to original size
+        output = output_padded[:, :h, :w]
+        
+        return output
       
 def TrainModel(model, train_loader, val_loader, checkpoint_dir, dapi_channel = 0, cb_channel = 3, num_epochs=20, lr=1e-3, device='cuda'):
     """

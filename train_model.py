@@ -11,15 +11,26 @@ from torch.utils.data.distributed import DistributedSampler
 
 # Initialize distributed training
 def setup_distributed():
-    # These are set by SLURM when using torchrun or set manually
-    local_rank = int(os.environ.get("LOCAL_RANK", 0))
-    world_size = int(os.environ.get("WORLD_SIZE", 1))
+    if 'WORLD_SIZE' in os.environ:
+        world_size = int(os.environ['WORLD_SIZE'])
+        rank = int(os.environ['RANK'])
+        local_rank = int(os.environ['LOCAL_RANK'])
+    else:
+        world_size = 1
+        rank = 0
+        local_rank = 0
     
-    dist.init_process_group(backend="nccl")
+    # IMPORTANT: Make sure local_rank doesn't exceed available GPUs
+    num_gpus = torch.cuda.device_count()
+    if local_rank >= num_gpus:
+        raise ValueError(f"LOCAL_RANK {local_rank} >= available GPUs {num_gpus}")
+    
     torch.cuda.set_device(local_rank)
     
+    if world_size > 1:
+        dist.init_process_group(backend='nccl')
+    
     return local_rank, world_size
-
 
 ##########################################
 # NeuroML Capstone Project
