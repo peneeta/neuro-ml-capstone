@@ -46,23 +46,23 @@ print(torch.cuda.is_available())
 
 def TrainPerWell(train_img_path, val_img_path, checkpoint_dir):
     
-    # INIT MODEL
-    local_rank, world_size = setup_distributed()
+    # # INIT MODEL
+    # local_rank, world_size = setup_distributed()
     
-    # Only use DDP if multiple GPUs
-    if world_size > 1:
-        model = DDP(model, device_ids=[local_rank])
+    # # Only use DDP if multiple GPUs
+    # if world_size > 1:
+    #     model = DDP(model, device_ids=[local_rank])
 
-    # Use DistributedSampler only if distributed
-    if world_size > 1:
-        train_sampler = DistributedSampler(...)
-        val_sampler = DistributedSampler(...)
-    else:
-        train_sampler = None
-        val_sampler = None
+    # # Use DistributedSampler only if distributed
+    # if world_size > 1:
+    #     train_sampler = DistributedSampler(...)
+    #     val_sampler = DistributedSampler(...)
+    # else:
+    #     train_sampler = None
+    #     val_sampler = None
     
-    model = NeuroUNET().cuda(local_rank)
-    model = DDP(model, device_ids=[local_rank])
+    model = NeuroUNET()
+    # model = DDP(model, device_ids=[local_rank])
     print(f'Total parameters: {sum(p.numel() for p in model.parameters())}')
     
     # specify datasets
@@ -84,32 +84,32 @@ def TrainPerWell(train_img_path, val_img_path, checkpoint_dir):
     print(f"Training dataset: {len(train_dataset)}")
     print(f"Validation dataset: {len(val_dataset)}")
     
-    # Create distributed samplers
-    if world_size > 1:
-        train_sampler = DistributedSampler(
-            train_dataset,
-            num_replicas=world_size,
-            rank=local_rank,
-            shuffle=True,
-            drop_last=True
-        )
+    # # Create distributed samplers
+    # if world_size > 1:
+    #     train_sampler = DistributedSampler(
+    #         train_dataset,
+    #         num_replicas=world_size,
+    #         rank=local_rank,
+    #         shuffle=True,
+    #         drop_last=True
+    #     )
         
-        val_sampler = DistributedSampler(
-            val_dataset,
-            num_replicas=world_size,
-            shuffle=False,
-            drop_last=False
-        )
-    else:
-        train_sampler = None
-        val_sampler = None
+    #     val_sampler = DistributedSampler(
+    #         val_dataset,
+    #         num_replicas=world_size,
+    #         shuffle=False,
+    #         drop_last=False
+    #     )
+    # else:
+    #     train_sampler = None
+    #     val_sampler = None
         
     # make dataloaders for training and val
     train_loader = DataLoader(
         train_dataset,
         batch_size=25,  # Per-GPU batch size (total = 25*4 = 100)
-        sampler=train_sampler,
-        shuffle=(train_sampler is None),
+        #sampler=train_sampler,
+        shuffle=True,
         num_workers=4,
         pin_memory=True,
         persistent_workers=True
@@ -118,8 +118,8 @@ def TrainPerWell(train_img_path, val_img_path, checkpoint_dir):
     val_loader = DataLoader(
         val_dataset,
         batch_size=25,
-        sampler=val_sampler,
-        shuffle=(val_sampler is None),
+        #sampler=val_sampler,
+        shuffle=True,
         num_workers=4,
         pin_memory=True,
         persistent_workers=True,
@@ -151,7 +151,7 @@ home = Path.home()
 # run this first
 # rsync -rltpDvp -e 'ssh -l pwojcik' data.bridges2.psc.edu:~/lm_lab_proj/for_training/B2_split .
 
-base_training_dir = home / "em_capstone_f25" / "Images"
+base_training_dir = home / "em_capstone_f25" / "Images" / "B2_split"
 train_imgs = base_training_dir / "train_full"
 val_imgs = base_training_dir / "val"
 
