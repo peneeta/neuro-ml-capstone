@@ -19,3 +19,8 @@ config: {'model_name': 'NeuroUNET', 'learning_rate': 0.001, 'epochs': 40, 'loss_
 2025-12-08 11:47:32,424 INFO    MainThread:558876 [wandb_run.py:_redirect():2421] Wrapping output streams.
 2025-12-08 11:47:32,424 INFO    MainThread:558876 [wandb_run.py:_redirect():2444] Redirects installed.
 2025-12-08 11:47:32,426 INFO    MainThread:558876 [wandb_init.py:init():1080] run started, returning control to user process
+2025-12-08 19:31:59,275 INFO    MainThread:558876 [wandb_run.py:_finish():2270] finishing run peneeta-carnegie-mellon-university/NeuroUNET with Real Data/u56ankvy
+2025-12-08 19:31:59,275 INFO    MainThread:558876 [wandb_run.py:_atexit_cleanup():2469] got exitcode: 0
+2025-12-08 19:31:59,275 INFO    MainThread:558876 [wandb_run.py:_restore():2451] restore
+2025-12-08 19:31:59,275 INFO    MainThread:558876 [wandb_run.py:_restore():2457] restore done
+2025-12-08 19:31:59,884 INFO    MainThread:558876 [wandb_run.py:_footer_sync_info():3853] logging synced files
