@@ -149,6 +149,9 @@ class NeuroUNET(nn.Module):
         """
         Predict on an image by dividing it into non-overlapping patches. Output image of shape (C, H, W) with predicted channels 1,2
         """
+        
+        print(image.shape)
+        
         c, h, w = image.shape
         
         # Calculate padding needed
