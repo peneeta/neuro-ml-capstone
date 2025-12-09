@@ -125,7 +125,7 @@ class NeuroUNET(nn.Module):
         Predict two channels (1, 2) from input channels (0, 3).
         """
         # Set model to evaluation mode
-        self.model.eval()
+        self.eval()
         
         with torch.no_grad():
             # Convert numpy array to torch tensor
@@ -133,11 +133,11 @@ class NeuroUNET(nn.Module):
             input_tensor = torch.from_numpy(patch_input).unsqueeze(0).float()
             
             # Move to the same device as the model
-            device = next(self.model.parameters()).device
+            device = next(self.parameters()).device
             input_tensor = input_tensor.to(device)
             
             # Run inference
-            output_tensor = self.model(input_tensor)
+            output_tensor = self(input_tensor)
             
             # Move back to CPU and remove batch dimension
             # (1, 2, H, W) -> (2, H, W)
