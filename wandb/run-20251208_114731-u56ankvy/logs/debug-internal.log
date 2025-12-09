@@ -4,3 +4,16 @@
 {"time":"2025-12-08T11:47:32.09672436-05:00","level":"INFO","msg":"stream: started","id":"u56ankvy"}
 {"time":"2025-12-08T11:47:32.096736483-05:00","level":"INFO","msg":"writer: started","stream_id":"u56ankvy"}
 {"time":"2025-12-08T11:47:32.096754247-05:00","level":"INFO","msg":"sender: started","stream_id":"u56ankvy"}
+{"time":"2025-12-08T16:52:38.782399286-05:00","level":"INFO","msg":"flowcontrol: backed up, offloading to disk","recordNumber":90885}
+{"time":"2025-12-08T16:53:02.561133291-05:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)"}
+{"time":"2025-12-08T16:53:04.810236095-05:00","level":"INFO","msg":"flowcontrol: unblocked","totalOffloaded":136}
+{"time":"2025-12-08T19:10:39.035901037-05:00","level":"INFO","msg":"flowcontrol: backed up, offloading to disk","recordNumber":132077}
+{"time":"2025-12-08T19:11:02.631372764-05:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/graphql\": net/http: request canceled (Client.Timeout exceeded while awaiting headers)"}
+{"time":"2025-12-08T19:11:04.863393486-05:00","level":"INFO","msg":"flowcontrol: unblocked","totalOffloaded":136}
+{"time":"2025-12-08T19:11:19.86849766-05:00","level":"INFO","msg":"api: retrying HTTP error","status":502,"url":"https://api.wandb.ai/files/peneeta-carnegie-mellon-university/NeuroUNET%20with%20Real%20Data/u56ankvy/file_stream","body":"\n<html><head>\n<meta http-equiv=\"content-type\" content=\"text/html;charset=utf-8\">\n<title>502 Server Error</title>\n</head>\n<body text=#000000 bgcolor=#ffffff>\n<h1>Error: Server Error</h1>\n<h2>The server encountered a temporary error and could not complete your request.<p>Please try again in 30 seconds.</h2>\n<h2></h2>\n</body></html>\n"}
+{"time":"2025-12-08T19:31:59.716096533-05:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2025-12-08T19:31:59.881516784-05:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2025-12-08T19:31:59.885328067-05:00","level":"INFO","msg":"stream: closing","id":"u56ankvy"}
+{"time":"2025-12-08T19:31:59.885342424-05:00","level":"INFO","msg":"handler: closed","stream_id":"u56ankvy"}
+{"time":"2025-12-08T19:31:59.885426103-05:00","level":"INFO","msg":"sender: closed","stream_id":"u56ankvy"}
+{"time":"2025-12-08T19:31:59.885437545-05:00","level":"INFO","msg":"stream: closed","id":"u56ankvy"}
