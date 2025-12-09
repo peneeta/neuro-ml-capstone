@@ -84,7 +84,7 @@ def PredictTestSet(model, input_dir, output_dir, patch_size=128):
         image = tiff.imread(img_file)
         
         # Predict
-        predicted = model.predict(image, patch_size=patch_size)
+        predicted = model.predict_image(image, patch_size=patch_size)
         
         # Create output filename with _pred postfix
         base_name = img_file.stem  # filename without extension
