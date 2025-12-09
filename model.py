@@ -119,8 +119,33 @@ class NeuroUNET(nn.Module):
     
     def load_state_dict(self, state_dict, strict = True, assign = False):
         return super().load_state_dict(state_dict, strict, assign)
+    
+    def predict(self, patch_input):
+        """
+        Predict two channels (1, 2) from input channels (0, 3).
+        """
+        # Set model to evaluation mode
+        self.model.eval()
+        
+        with torch.no_grad():
+            # Convert numpy array to torch tensor
+            # Add batch dimension: (2, H, W) -> (1, 2, H, W)
+            input_tensor = torch.from_numpy(patch_input).unsqueeze(0).float()
+            
+            # Move to the same device as the model
+            device = next(self.model.parameters()).device
+            input_tensor = input_tensor.to(device)
+            
+            # Run inference
+            output_tensor = self.model(input_tensor)
+            
+            # Move back to CPU and remove batch dimension
+            # (1, 2, H, W) -> (2, H, W)
+            output = output_tensor.squeeze(0).cpu().numpy()
+        
+        return output
 
-    def predict(self, image, patch_size=128):
+    def predict_image(self, image, patch_size=128):
         """
         Predict on an image by dividing it into non-overlapping patches. Output image of shape (C, H, W) with predicted channels 1,2
         """
